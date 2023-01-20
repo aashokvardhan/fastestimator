@@ -14,6 +14,8 @@
 # ==============================================================================
 import tempfile
 
+from model_ops import ModelOps
+
 import fastestimator as fe
 from fastestimator.architecture.tensorflow import LeNet
 from fastestimator.dataset.data import mnist
@@ -66,3 +68,4 @@ if __name__ == "__main__":
     est = get_estimator()
     est.fit()
     est.test()
+    ModelOps('../experiments').making_archive(est.network.models, '.', save_architecture=True)
