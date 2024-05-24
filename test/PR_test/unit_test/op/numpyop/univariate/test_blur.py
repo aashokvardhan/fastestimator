@@ -38,8 +38,8 @@ class TestBlur(unittest.TestCase):
     def test_single_input_advanced(self):
         blur = Blur(inputs='x', outputs='x',
                     advanced = True,
-                    sigmaX_limit = (0.5,1),
-                    sigmaY_limit = 1,
+                    sigma_x_limit = (0.5,1),
+                    sigma_y_limit = 1,
                     rotate_limit = 45,
                     beta_limit = (0.5, 8.0),
                     noise_limit = (0.5, 1.0))
@@ -63,8 +63,8 @@ class TestBlur(unittest.TestCase):
     def test_input_image_and_mask_advanced(self):
         blur = Blur(inputs='x', outputs='x',
                     advanced = True,
-                    sigmaX_limit = (0.5,1),
-                    sigmaY_limit = 1,
+                    sigma_x_limit = (0.5,1),
+                    sigma_y_limit = 1,
                     rotate_limit = 45,
                     beta_limit = (0.5, 8.0),
                     noise_limit = (0.5, 1.0))

@@ -14,8 +14,8 @@
 # ==============================================================================
 from typing import Iterable, Tuple, Union
 
-from albumentations.augmentations.blur.transforms import Blur as BlurAlb
 from albumentations.augmentations.blur.transforms import AdvancedBlur as AdvBlurAlb
+from albumentations.augmentations.blur.transforms import Blur as BlurAlb
 
 from fastestimator.op.numpyop.univariate.univariate import ImageOnlyAlbumentation
 from fastestimator.util.traceability_util import traceable
@@ -56,16 +56,16 @@ class Blur(ImageOnlyAlbumentation):
                  ds_id: Union[None, str, Iterable[str]] = None,
                  blur_limit: Union[int, Tuple[int, int]] = 7,
                  advanced: bool= False,
-                 sigmaX_limit: Union[None, float, Tuple[float, float]] = (0.2, 1.0),
-                 sigmaY_limit: Union[None, float, Tuple[float, float]] = (0.2, 1.0),
-                 rotate_limit: Union[None, int, Tuple[int, int]] = 90,
-                 beta_limit: Union[None, float, Tuple[float, float]] = (0.5, 8.0),
-                 noise_limit: Union[None, float, Tuple[float, float]] = (0.9, 1.1)):
+                 sigma_x_limit: Union[float, Tuple[float, float]] = (0.2, 1.0),
+                 sigma_y_limit: Union[float, Tuple[float, float]] = (0.2, 1.0),
+                 rotate_limit: Union[int, Tuple[int, int]] = 90,
+                 beta_limit: Union[float, Tuple[float, float]] = (0.5, 8.0),
+                 noise_limit: Union[float, Tuple[float, float]] = (0.9, 1.1)):
 
         if advanced:
             func = AdvBlurAlb(blur_limit=blur_limit,
-                              sigmaX_limit=sigmaX_limit,
-                              sigmaY_limit=sigmaY_limit,
+                              sigma_x_limit=sigma_x_limit,
+                              sigma_y_limit=sigma_y_limit,
                               rotate_limit=rotate_limit,
                               beta_limit=beta_limit,
                               noise_limit=noise_limit,

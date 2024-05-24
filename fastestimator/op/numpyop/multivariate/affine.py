@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Iterable, List, Optional, Tuple, TypeVar, Union
+from typing import Iterable, Literal, Optional, Tuple, TypeVar, Union
 
 from albumentations import BboxParams, KeypointParams
 from albumentations.augmentations import Affine as AffineAlb
@@ -81,14 +81,14 @@ class Affine(MultiVariateAlbumentation):
                  scale: Union[None, float, Tuple[float, float]] = None,
                  shear: Union[None, Number, Tuple[Number, Number]] = None,
                  translate: Union[None, Number, Tuple[Number, Number]] = None,
-                 border_handling: Union[str, List[str]] = "constant",
+                 border_handling: str = "constant",
                  fill_value: Number = 0,
                  fill_value_mask: Union[None, Number] = None,
                  interpolation: str = "bilinear",
                  mask_interpolation: str = "nearest_neighbor",
                  fit_output: bool = False,
                  keep_ratio: bool = False,
-                 rotate_method: str = 'largest_box',
+                 rotate_method: Literal["largest_box", "ellipse"] = 'largest_box',
                  mode: Union[None, str, Iterable[str]] = None,
                  ds_id: Union[None, str, Iterable[str]] = None,
                  image_in: Optional[str] = None,

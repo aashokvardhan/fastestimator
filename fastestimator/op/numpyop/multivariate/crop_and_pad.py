@@ -56,7 +56,7 @@ class CropAndPad(MultiVariateAlbumentation):
     def __init__(self,
                  px: Union[None, int, Tuple[int, int]] = None,
                  percent: Union[None, float, Tuple[float, float]] = None,
-                 pad_mode: Union[int, str] = 'constant',
+                 pad_mode:  str = 'constant',
                  pad_cval: Union[int, Tuple[float], List[int]] = 0,
                  pad_cval_mask: Union[None, int, Tuple[float], List[int]] = None,
                  keep_size: bool = True,
