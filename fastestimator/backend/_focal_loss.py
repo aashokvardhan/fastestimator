@@ -17,7 +17,7 @@ from typing import TypeVar
 import tensorflow as tf
 import torch
 import torch.nn.functional as F
-from tensorflow_addons.losses import SigmoidFocalCrossEntropy
+from tensorflow.keras.losses import CategoricalFocalCrossentropy
 
 from fastestimator.backend._clip_by_value import clip_by_value
 from fastestimator.backend._reduce_mean import reduce_mean
@@ -123,10 +123,10 @@ def focal_loss(y_true: Tensor,
 
     if tf.is_tensor(y_true):
         y_true = tf.cast(y_true, dtype=y_pred.dtype)
-        fl = SigmoidFocalCrossEntropy(from_logits=from_logits,
-                                      alpha=alpha,
-                                      gamma=gamma,
-                                      reduction=tf.keras.losses.Reduction.NONE)(y_pred=y_pred, y_true=y_true)
+        fl = CategoricalFocalCrossentropy(from_logits=from_logits,
+                                          alpha=alpha,
+                                          gamma=gamma,
+                                          reduction=tf.keras.losses.Reduction.NONE)(y_pred=y_pred, y_true=y_true)
         gt_shape = tf.shape(y_true)
         fl_shape = tf.shape(fl)
     elif isinstance(y_true, torch.Tensor):

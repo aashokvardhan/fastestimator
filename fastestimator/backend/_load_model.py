@@ -18,7 +18,6 @@ from collections import OrderedDict
 from typing import Union
 
 import tensorflow as tf
-import tensorflow_addons as tfa
 import torch
 
 from fastestimator.backend._set_lr import set_lr
@@ -65,9 +64,8 @@ def load_model(model: Union[tf.keras.Model, torch.nn.Module], weights_path: str,
                 state_dict = pickle.load(f)
             model.current_optimizer.set_weights(state_dict['weights'])
             weight_decay = None
-            if isinstance(model.current_optimizer, tfa.optimizers.DecoupledWeightDecayExtension) or hasattr(
-                    model.current_optimizer, "inner_optimizer") and isinstance(
-                        model.current_optimizer.inner_optimizer, tfa.optimizers.DecoupledWeightDecayExtension):
+            if hasattr(model.current_optimizer, "weight_decay") and tf.keras.backend.get_value(
+                    model.current_optimizer.weight_decay) is not None:
                 weight_decay = state_dict['weight_decay']
             set_lr(model, state_dict['lr'], weight_decay=weight_decay)
     elif isinstance(model, torch.nn.Module):
