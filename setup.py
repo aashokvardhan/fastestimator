@@ -39,7 +39,7 @@ def get_dependency():
         'scipy==1.10.0',
         'PyLaTeX==1.4.1',
         'natsort==8.3.1',
-        'tensorflow_probability==0.20.0',
+        'tensorflow_probability==0.22.1',
         'transformers==4.26.1',
         'torchinfo==1.7.2',
         'graphviz==0.20.1',
