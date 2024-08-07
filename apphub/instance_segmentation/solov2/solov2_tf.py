@@ -528,7 +528,7 @@ def get_estimator(data_dir=None,
         num_process=8 * num_device)
     init_lr = 1e-2 / 16 * batch_size
     model = fe.build(model_fn=lambda: solov2(input_shape=(im_size, im_size, 3)),
-                     optimizer_fn=lambda: tf.optimizers.SGD(learning_rate=init_lr, momentum=0.9))
+                     optimizer_fn=lambda: tf.keras.optimizers.SGD(learning_rate=init_lr, momentum=0.9))
     network = fe.Network(ops=[
         Normalize(inputs="image", outputs="image", mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
         ModelOp(model=model, inputs="image", outputs=("feat_seg", "feat_cls_list", "feat_kernel_list")),

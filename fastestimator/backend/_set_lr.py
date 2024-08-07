@@ -50,8 +50,8 @@ def set_lr(model: Union[tf.keras.Model, torch.nn.Module], lr: float, weight_deca
                 model.current_optimizer.weight_decay) is not None:
             if weight_decay is None:
                 weight_decay = tf.keras.backend.get_value(model.current_optimizer.weight_decay) * lr / get_lr(model)
-            tf.keras.backend.set_value(model.current_optimizer.weight_decay, weight_decay)
-        tf.keras.backend.set_value(model.current_optimizer.lr, lr)
+            model.current_optimizer.weight_decay = weight_decay
+        model.current_optimizer.lr = lr
     elif isinstance(model, torch.nn.Module):
         for param_group in model.current_optimizer.param_groups:
             param_group['lr'] = lr

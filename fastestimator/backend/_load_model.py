@@ -51,8 +51,8 @@ def load_model(model: Union[tf.keras.Model, torch.nn.Module], weights_path: str,
     if load_optimizer:
         assert hasattr(model, "fe_compiled") and model.fe_compiled, "model must be built by fe.build if loading optimizers"
 
-    if os.path.exists(weights_path):
-        ValueError("Weights path doesn't exist: ", weights_path)
+    if not os.path.exists(weights_path):
+        raise ValueError("Weights path doesn't exist: ", weights_path)
 
     if isinstance(model, tf.keras.Model):
         model.load_weights(weights_path)

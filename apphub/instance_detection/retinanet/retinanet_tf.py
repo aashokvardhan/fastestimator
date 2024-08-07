@@ -489,7 +489,7 @@ def get_estimator(data_dir=None,
         ])
     # network
     model = fe.build(model_fn=lambda: RetinaNet(input_shape=(image_size, image_size, 3), num_classes=num_classes),
-                     optimizer_fn=lambda: tf.optimizers.SGD(momentum=0.9))
+                     optimizer_fn=lambda: tf.keras.optimizers.SGD(momentum=0.9))
     network = fe.Network(ops=[
         ModelOp(model=model, inputs="image", outputs=["cls_pred", "loc_pred"]),
         RetinaLoss(inputs=["anchorbox", "cls_pred", "loc_pred"], outputs=["total_loss", "focal_loss", "l1_loss"]),
