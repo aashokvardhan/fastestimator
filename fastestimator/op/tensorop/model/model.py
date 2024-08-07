@@ -53,6 +53,7 @@ class ModelOp(TensorOp):
             so you must provide output key names for them within the `outputs` argument. Note that layer names may be
             different between single-gpu and multi-gpu environments, though we attempt to prevent this.
     """
+
     def __init__(self,
                  model: Model,
                  inputs: Union[None, str, Iterable[str]] = None,
@@ -114,7 +115,7 @@ class ModelOp(TensorOp):
                 self.multi_inputs = len(inspect.signature(self.model.module.forward).parameters.keys()) > 1
             else:
                 self.multi_inputs = len(inspect.signature(self.model.forward).parameters.keys()) > 1
-        elif framework == "tf" and "keras.engine" not in str(type(self.model)):
+        elif framework == "tf" and "keras.src.engine" not in str(type(self.model)):
             model_call_args = {x for x in inspect.signature(self.model.call).parameters.keys()}
             self.multi_inputs = len(model_call_args) > 1
 
