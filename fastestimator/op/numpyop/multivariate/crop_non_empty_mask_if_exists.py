@@ -1,4 +1,4 @@
-# Copyright 2019 The FastEstimator Authors. All Rights Reserved.
+# Copyright 2024 The FastEstimator Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,13 +12,53 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Iterable, List, Optional, Union
+import random
+from typing import Any, Iterable, List, Optional, Union
 
+import numpy as np
 from albumentations import BboxParams, KeypointParams
 from albumentations.augmentations import CropNonEmptyMaskIfExists as CropNonEmptyMaskIfExistsAlb
+from albumentations.core.types import NUM_MULTI_CHANNEL_DIMENSIONS
 
 from fastestimator.op.numpyop.multivariate.multivariate import MultiVariateAlbumentation
 from fastestimator.util.traceability_util import traceable
+
+
+class CustomCropNonEmptyMaskIfExistsAlb(CropNonEmptyMaskIfExistsAlb):
+
+    def update_params(self, params: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        if "mask" in kwargs:
+            mask = self._preprocess_mask(kwargs["mask"])
+        elif "masks" in kwargs and len(kwargs["masks"]):
+            masks = kwargs["masks"]
+            mask = self._preprocess_mask(np.copy(masks[0]))  # need copy as we perform in-place mod afterwards
+            for m in masks[1:]:
+                mask |= self._preprocess_mask(m)
+        else:
+            msg = "Can not find mask for CropNonEmptyMaskIfExists"
+            raise RuntimeError(msg)
+
+        mask_height, mask_width = mask.shape[:2]
+
+        if mask.any():
+            mask = mask.sum(axis=-1) if mask.ndim == NUM_MULTI_CHANNEL_DIMENSIONS else mask
+            non_zero_yx = np.argwhere(mask)
+            y, x = random.choice(list(non_zero_yx))
+            x_min = x - random.randint(0, self.width - 1)
+            y_min = y - random.randint(0, self.height - 1)
+            x_min = np.clip(x_min, 0, mask_width - self.width)
+            y_min = np.clip(y_min, 0, mask_height - self.height)
+        else:
+            x_min = random.randint(0, mask_width - self.width)
+            y_min = random.randint(0, mask_height - self.height)
+
+        x_max = x_min + self.width
+        y_max = y_min + self.height
+
+        crop_coords = x_min, y_min, x_max, y_max
+
+        params["crop_coords"] = crop_coords
+        return params
 
 
 @traceable()
@@ -53,6 +93,7 @@ class CropNonEmptyMaskIfExists(MultiVariateAlbumentation):
     Image types:
         uint8, float32
     """
+
     def __init__(self,
                  height: int,
                  width: int,
@@ -73,11 +114,11 @@ class CropNonEmptyMaskIfExists(MultiVariateAlbumentation):
                  bbox_params: Union[BboxParams, str, None] = None,
                  keypoint_params: Union[KeypointParams, str, None] = None):
         super().__init__(
-            CropNonEmptyMaskIfExistsAlb(height=height,
-                                        width=width,
-                                        ignore_values=ignore_values,
-                                        ignore_channels=ignore_channels,
-                                        always_apply=True),
+            CustomCropNonEmptyMaskIfExistsAlb(height=height,
+                                              width=width,
+                                              ignore_values=ignore_values,
+                                              ignore_channels=ignore_channels,
+                                              always_apply=True),
             image_in=image_in,
             mask_in=mask_in,
             masks_in=masks_in,
