@@ -27,6 +27,7 @@ from tensorflow.python.distribute.mirrored_strategy import MirroredStrategy
 from fastestimator.backend._load_model import load_model
 from fastestimator.backend._save_model import save_model
 from fastestimator.network import BaseNetwork
+from fastestimator.op.tensorop.model import ModelOp
 from fastestimator.pipeline import Pipeline
 from fastestimator.schedule.schedule import Scheduler
 from fastestimator.summary.summary import Summary
@@ -259,6 +260,11 @@ class System:
         for model in self.network.models:
             save_model(model, save_dir=save_dir, save_optimizer=hasattr(model, "optimizer") and model.optimizer)
         # Save everything else
+
+        for net_op in self.network.ops:
+            if isinstance(net_op, ModelOp):
+                net_op.model = net_op.model.model_name if net_op.model else None
+
         objects = {
             'summary': self.summary,
             'custom_graphs': self.custom_graphs,
@@ -318,6 +324,14 @@ class System:
         self._load_list(objects, 'nops', self.pipeline.ops)
         self._load_dict(objects, 'ds', self.pipeline.data)
 
+        for net_op in self.network.ops:
+            if isinstance(net_op, ModelOp):
+                filtered_models = [mo for mo in self.network.models if mo.model_name == net_op.model]
+                if filtered_models:
+                    net_op.model = filtered_models[0]
+                else:
+                    net_op.model = None
+
     @staticmethod
     def _load_model(model: Model, base_path: str) -> None:
         """Load model and optimizer weights from disk.
@@ -361,10 +375,10 @@ class System:
             raise ValueError("Expected saved {} to contain {} objects, but found {} instead".format(
                 state_key, len(in_memory_objects), len(states)))
         for obj, state in zip(in_memory_objects, states):
-            if hasattr(obj, '__setstate__'):
-                obj.__setstate__(state)
-            elif hasattr(obj, '__dict__'):
+            if hasattr(obj, '__dict__'):
                 obj.__dict__.update(state)
+            elif hasattr(obj, '__setstate__'):
+                obj.__setstate__(state)
             else:
                 # Might be a None or something else that can't be updated
                 pass
