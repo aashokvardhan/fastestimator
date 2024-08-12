@@ -51,8 +51,8 @@ def _verify_dependency_versions() -> None:
     """
     if tf.__version__ not in {'2.15.1', '2.15.0'}:
         warn(f"Expected TensorFlow version 2.15.0 but found {tf.__version__}. The framework may not work as expected.")
-    if torch.__version__ not in ('2.4.0', '2.4.0+cpu', '2.4.0+cu124'):
-        warn(f"Expected PyTorch version 2.4.0 but found {torch.__version__}. The framework may not work as expected.")
+    if torch.__version__ not in ('2.2.2', '2.2.2+cpu', '2.2.2+cu124'):
+        warn(f"Expected PyTorch version 2.2.2 but found {torch.__version__}. The framework may not work as expected.")
 
 
 @traceable()

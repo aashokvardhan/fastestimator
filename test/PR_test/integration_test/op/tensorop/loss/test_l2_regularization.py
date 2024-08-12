@@ -215,7 +215,7 @@ class TestL2Regularization(unittest.TestCase):
                                batch_size=128,
                                ops=[ExpandDims(inputs="x", outputs="x"), Minmax(inputs="x", outputs="x")])
         # step 2
-        model_tf = fe.build(model_fn=MyNet_tf, optimizer_fn=lambda: tf.keras.optimizers.SGD(learning_rate=0.01))
+        model_tf = fe.build(model_fn=MyNet_tf, optimizer_fn=lambda: tf.keras.optimizers.legacy.SGD(learning_rate=0.01))
         network = fe.Network(ops=[
             ModelOp(model=model_tf, inputs="x", outputs="y_pred"),
             CrossEntropy(inputs=("y_pred", "y"), outputs="ce"),

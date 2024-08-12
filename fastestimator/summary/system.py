@@ -263,8 +263,8 @@ class System:
 
         for net_op in self.network.ops:
             if isinstance(net_op, ModelOp):
-                net_op.model = net_op.model.model_name if net_op.model else None
-
+                if net_op.model and not isinstance(net_op.model, str):
+                    net_op.model = net_op.model.model_name
         objects = {
             'summary': self.summary,
             'custom_graphs': self.custom_graphs,
@@ -375,13 +375,20 @@ class System:
             raise ValueError("Expected saved {} to contain {} objects, but found {} instead".format(
                 state_key, len(in_memory_objects), len(states)))
         for obj, state in zip(in_memory_objects, states):
-            if hasattr(obj, '__dict__'):
-                obj.__dict__.update(state)
-            elif hasattr(obj, '__setstate__'):
-                obj.__setstate__(state)
-            else:
-                # Might be a None or something else that can't be updated
-                pass
+            try:
+                if hasattr(obj, '__setstate__'):
+                    obj.__setstate__(state)
+                elif hasattr(obj, '__dict__'):
+                    obj.__dict__.update(state)
+                else:
+                    # Might be a None or something else that can't be updated
+                    pass
+            except:
+                if hasattr(obj, '__dict__'):
+                    obj.__dict__.update(state)
+                else:
+                    # Might be a None or something else that can't be updated
+                    pass
 
     @staticmethod
     def _load_dict(states: Dict[str, Any], state_key: str, in_memory_objects: Dict[Any, Any]) -> None:

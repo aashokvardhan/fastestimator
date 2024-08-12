@@ -1102,12 +1102,12 @@ def _optimizer_fn_from_string(name: str, framework: str) -> Callable:
     # The legacy optimizers appear to be faster than the new ones on both mac and linux. Revisit this speed test again
     # after tf version > 2.12
     tf_optimizer_fn = {
-        'adadelta': tf.keras.optimizers.Adadelta,
-        'adagrad': tf.keras.optimizers.Adagrad,
-        'adam': tf.keras.optimizers.Adam,
-        'adamax': tf.keras.optimizers.Adamax,
-        'rmsprop': tf.keras.optimizers.RMSprop,
-        'sgd': tf.keras.optimizers.SGD
+        'adadelta': tf.keras.optimizers.legacy.Adadelta,
+        'adagrad': tf.keras.optimizers.legacy.Adagrad,
+        'adam': tf.keras.optimizers.legacy.Adam,
+        'adamax': tf.keras.optimizers.legacy.Adamax,
+        'rmsprop': tf.keras.optimizers.legacy.RMSprop,
+        'sgd': tf.keras.optimizers.legacy.SGD
     }
     pytorch_optimizer_fn = {
         'adadelta': lambda x: torch.optim.Adadelta(params=x),

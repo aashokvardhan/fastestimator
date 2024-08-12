@@ -158,7 +158,7 @@ class TestUpdateOp(unittest.TestCase):
                                    ops=[ExpandDims(inputs="x", outputs="x"), Minmax(inputs="x", outputs="x")])
 
             model = fe.build(model_fn=LeNet_tf,
-                             optimizer_fn=lambda: tf.keras.optimizers.SGD(lr),
+                             optimizer_fn=lambda: tf.keras.optimizers.legacy.SGD(lr),
                              mixed_precision=mixed_precision)
             network = fe.Network(ops=[
                 ModelOp(model=model, inputs="x", outputs="y_pred"),
@@ -263,9 +263,9 @@ class TestUpdateOp(unittest.TestCase):
                                    ops=[ExpandDims(inputs="x", outputs="x"), Minmax(inputs="x", outputs="x")])
 
             optimizer_fn = EpochScheduler({
-                1: lambda: tf.keras.optimizers.SGD(lr),
-                2: lambda: tf.keras.optimizers.SGD(lr2),
-                3: lambda: tf.keras.optimizers.SGD(lr3)
+                1: lambda: tf.keras.optimizers.legacy.SGD(lr),
+                2: lambda: tf.keras.optimizers.legacy.SGD(lr2),
+                3: lambda: tf.keras.optimizers.legacy.SGD(lr3)
             })
 
             model = fe.build(model_fn=LeNet_tf, optimizer_fn=optimizer_fn, mixed_precision=mixed_precision)
@@ -377,7 +377,8 @@ class TestUpdateOp(unittest.TestCase):
                                    batch_size=4,
                                    ops=[ExpandDims(inputs="x", outputs="x"), Minmax(inputs="x", outputs="x")])
 
-            optimizer_fn = RepeatScheduler([lambda: tf.keras.optimizers.SGD(lr), lambda: tf.keras.optimizers.SGD(lr2)])
+            optimizer_fn = RepeatScheduler(
+                [lambda: tf.keras.optimizers.legacy.SGD(lr), lambda: tf.keras.optimizers.legacy.SGD(lr2)])
 
             model = fe.build(model_fn=LeNet_tf, optimizer_fn=optimizer_fn, mixed_precision=mixed_precision)
             network = fe.Network(ops=[

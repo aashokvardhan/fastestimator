@@ -24,7 +24,7 @@ import fastestimator as fe
 class TestSetLr(unittest.TestCase):
 
     def test_set_lr_tf(self):
-        m = fe.build(fe.architecture.tensorflow.LeNet, optimizer_fn=lambda: tf.optimizers.Adam(1e-4))
+        m = fe.build(fe.architecture.tensorflow.LeNet, optimizer_fn=lambda: tf.keras.optimizers.legacy.Adam(1e-4))
         fe.backend.set_lr(m, 2e-4)
         self.assertTrue(np.allclose(fe.backend.get_lr(model=m), 2e-4))
 

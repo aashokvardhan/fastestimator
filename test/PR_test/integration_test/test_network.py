@@ -204,7 +204,7 @@ class TestNetworkBuildOptimizer(unittest.TestCase):
                                                         model=self.tf_model,
                                                         framework="tf",
                                                         mixed_precision=False)
-                self.assertIsInstance(optimizer, tf.optimizers.legacy.Optimizer)
+                self.assertIsInstance(optimizer, tf.keras.optimizers.legacy.Optimizer)
 
     def test_network_build_optimizer_torch_model_optimizer_str(self):
         str_list = ['adadelta', 'adagrad', 'adam', 'adamax', 'rmsprop', 'sgd']
@@ -217,14 +217,14 @@ class TestNetworkBuildOptimizer(unittest.TestCase):
                 self.assertIsInstance(optimizer, torch.optim.Optimizer)
 
     def test_network_build_optimizer_tf_model_optimizer_fn(self):
-        fn_list = [tf.optimizers.Adadelta, lambda: tf.optimizers.Adam(lr=0.001)]
+        fn_list = [tf.keras.optimizers.legacy.Adadelta, lambda: tf.keras.optimizers.legacy.Adam(lr=0.001)]
         for opt_fn in fn_list:
             with self.subTest(optimizer_fn=opt_fn):
                 optimizer = fe.network._build_optimizer(optimizer_fn=opt_fn,
                                                         model=self.tf_model,
                                                         framework="tf",
                                                         mixed_precision=False)
-                self.assertIsInstance(optimizer, tf.optimizers.Optimizer)
+                self.assertIsInstance(optimizer, tf.keras.optimizers.legacy.Optimizer)
 
     def test_network_build_optimizer_torch_model_optimizer_fn(self):
         opt_fn = lambda x: torch.optim.SGD(params=x, lr=0.01)
@@ -375,12 +375,12 @@ class TestNetworkBuild(unittest.TestCase):
             self.assertEqual(model.model_name, "test")
 
     def test_network_build_tf_model_tf_optimizer_check_model_optimizer_instance(self):
-        model = fe.build(model_fn=one_layer_tf_model, optimizer_fn=tf.optimizers.Adadelta)
+        model = fe.build(model_fn=one_layer_tf_model, optimizer_fn=tf.keras.optimizers.legacy.Adadelta)
         with self.subTest("check model instance"):
             self.assertIsInstance(model, tf.keras.Model)
 
         with self.subTest("check optimizer"):
-            self.assertIsInstance(model.optimizer, tf.optimizers.Optimizer)
+            self.assertIsInstance(model.optimizer, tf.keras.optimizers.legacy.Optimizer)
 
     def test_network_build_torch_model_torch_optimizer_check_model_optimizer_instance(self):
         model = fe.build(model_fn=OneLayerTorchModel, optimizer_fn=lambda x: torch.optim.SGD(params=x, lr=0.01))
@@ -405,17 +405,18 @@ class TestNetworkBuild(unittest.TestCase):
 
         with self.subTest("optimizer_fn use lambda function"):
             with self.assertRaises(ValueError):
-                model = fe.build(model_fn=OneLayerTorchModel, optimizer_fn=lambda: tf.keras.optimizers.Adadelta())
+                model = fe.build(model_fn=OneLayerTorchModel,
+                                 optimizer_fn=lambda: tf.keras.optimizers.legacy.Adadelta())
 
     def test_network_build_unknown_model_check_assertion_error(self):
         with self.assertRaises(ValueError):
-            model = fe.build(model_fn=lambda: "string", optimizer_fn=tf.keras.optimizers.Adadelta)
+            model = fe.build(model_fn=lambda: "string", optimizer_fn=tf.keras.optimizers.legacy.Adadelta)
 
     def test_network_build_check_load_weight_from_path(self):
         with unittest.mock.patch("fastestimator.network.load_model") as fake:
             optimizer = EpochScheduler(epoch_dict={1: "adam", 10: "sgd"})
             model = fe.build(model_fn=one_layer_tf_model,
-                             optimizer_fn=tf.keras.optimizers.Adadelta,
+                             optimizer_fn=tf.keras.optimizers.legacy.Adadelta,
                              weights_path="example_path")
 
             _, weight = fake.call_args[0]

@@ -21,7 +21,7 @@ class TestUpdateModel(unittest.TestCase):
                 return gradient
 
         lr = 0.1
-        model = fe.build(model_fn=one_layer_tf_model, optimizer_fn=lambda: tf.keras.optimizers.SGD(lr))
+        model = fe.build(model_fn=one_layer_tf_model, optimizer_fn=lambda: tf.keras.optimizers.legacy.SGD(lr))
         init_weights = [x.numpy() for x in model.trainable_variables]
         x = tf.constant([[1, 1, 1], [1, 1, 1]])
         strategy = tf.distribute.get_strategy()
@@ -64,7 +64,7 @@ class TestUpdateModel(unittest.TestCase):
             fe.backend.update_model(model, gradients=gradients)
 
         lr = 0.1
-        model = fe.build(model_fn=one_layer_tf_model, optimizer_fn=lambda: tf.keras.optimizers.SGD(lr))
+        model = fe.build(model_fn=one_layer_tf_model, optimizer_fn=lambda: tf.keras.optimizers.legacy.SGD(lr))
         init_weights = [x.numpy() for x in model.trainable_variables]
         gradients = [tf.constant([[1.0], [1.0], [1.0]])]
 
