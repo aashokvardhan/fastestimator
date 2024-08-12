@@ -217,7 +217,7 @@ class TestNetworkBuildOptimizer(unittest.TestCase):
                 self.assertIsInstance(optimizer, torch.optim.Optimizer)
 
     def test_network_build_optimizer_tf_model_optimizer_fn(self):
-        fn_list = [tf.keras.optimizers.legacy.Adadelta, lambda: tf.keras.optimizers.legacy.Adam(lr=0.001)]
+        fn_list = [tf.keras.optimizers.legacy.Adadelta, lambda: tf.keras.optimizers.legacy.Adam(learning_rate=0.001)]
         for opt_fn in fn_list:
             with self.subTest(optimizer_fn=opt_fn):
                 optimizer = fe.network._build_optimizer(optimizer_fn=opt_fn,
