@@ -97,6 +97,7 @@ class FeInputSpec:
         model_input: The input to the model.
         model: The model which corresponds to the given `model_input`.
     """
+
     def __init__(self, model_input: Any, model: Model):
         self.shape = to_shape(model_input)
         self.dtype = to_type(model_input)
@@ -165,6 +166,7 @@ class FeSplitSummary(LatexObject):
 
     This class is intentionally not @traceable.
     """
+
     def __init__(self):
         super().__init__()
         self.data = []
@@ -543,13 +545,14 @@ def _trace_value(inp: Any, tables: Dict[FEID, FeSummaryTable], ret_ref: Flag, wr
             data=set([_trace_value(x, tables, ret_ref, wrap_str) for x in islice(inp, _CollectionSizeLimit + 1)]),
             truncate=_CollectionSizeLimit)
     elif isinstance(inp, dict):
-        return PyContainer(
-            data={
-                _trace_value(k, tables, ret_ref, wrap_str=wrap_str): _trace_value(v, tables, ret_ref, wrap_str=True)
-                for k,
-                v in inp.items()
-            },
-            truncate=_CollectionSizeLimit)
+        da = {}
+        for k, v in inp.items():
+            try:
+                da[_trace_value(k, tables, ret_ref,
+                                wrap_str=wrap_str)] = _trace_value(v, tables, ret_ref, wrap_str=True)
+            except:
+                pass
+        return PyContainer(data=da, truncate=_CollectionSizeLimit)
     elif isinstance(inp, (tf.Tensor, torch.Tensor, np.ndarray, tf.Variable)):
         inp_type = type(inp)
         inp_id = FEID(id(inp))
