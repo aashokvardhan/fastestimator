@@ -36,17 +36,13 @@ class BestModelSaver(Trace):
         save_best_mode: Can be 'min' or 'max'.
         weights_name: The exact name used to save model weights. If None default model prefix will be used.
         load_best_final: Whether to automatically reload the best model (if available) after training.
-        save_architecture: Whether to save the full model architecture in addition to the model weights. This option is
-            only available for TensorFlow models at present, and will generate a folder containing several files. The
-            model can then be re-instantiated even without access to the original code by calling:
-            tf.keras.models.load_model(<path to model folder>).
 
     Raises:
         AssertionError: If a `metric` is not provided and it cannot be inferred from the `model`.
         ValueError: If `save_best_mode` is an unacceptable string, or `save_architecture` is used with a PyTorch model.
     """
     def __init__(self,
-                 model: Union[tf.keras.Model, torch.nn.Module],
+                 model: torch.nn.Module,
                  save_dir: str,
                  metric: Optional[str] = None,
                  save_best_mode: str = "min",

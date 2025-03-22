@@ -81,7 +81,7 @@ def dice_score(y_pred: Tensor,
     ```
 
     Args:
-        y_pred: Prediction with a shape like (Batch, C, ...) for torch and (Batch, ..., C) for tensorflow or numpy.
+        y_pred: Prediction with a shape like (Batch, C, ...) for torch and (Batch, ..., C) for numpy.
         y_true: Ground truth class labels with a shape like `y_pred`.
         soft_dice: Whether to square elements in the denominator.
         sample_average: Whether to average the dice score along the batch dimension.

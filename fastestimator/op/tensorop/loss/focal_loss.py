@@ -14,14 +14,13 @@
 # ==============================================================================
 from typing import Any, Dict, Iterable, List, Tuple, TypeVar, Union
 
-import tensorflow as tf
 import torch
 
 from fastestimator.backend._focal_loss import focal_loss
 from fastestimator.op.tensorop.loss.loss import LossOp
 from fastestimator.util.traceability_util import traceable
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor)
+Tensor = TypeVar('Tensor', torch.Tensor)
 
 
 @traceable()

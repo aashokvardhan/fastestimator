@@ -34,10 +34,6 @@ class ModelSaver(Trace):
         frequency: Model saving frequency in epoch(s).
         max_to_keep: Maximum number of latest saved files to keep. If 0 or None, all models will be saved.
         weights_name: The prefix used for saving model weights. If None model.model_name will be used as a prefix.
-        save_architecture: Whether to save the full model architecture in addition to the model weights. This option is
-            only available for TensorFlow models at present, and will generate a folder containing several files. The
-            model can then be re-instantiated even without access to the original code by calling:
-            tf.keras.models.load_model(<path to model folder>).
 
     Raises:
         ValueError: If `max_to_keep` is negative, or if save_architecture is used with a PyTorch model.
