@@ -14,7 +14,6 @@
 # ==============================================================================
 from typing import Any, Dict, Iterable, List, Sequence, TypeVar, Union
 
-import tensorflow as tf
 import torch
 
 from fastestimator.backend._resize3d import resize_3d
@@ -22,7 +21,7 @@ from fastestimator.op.tensorop.tensorop import TensorOp
 from fastestimator.util.base_util import to_list
 from fastestimator.util.traceability_util import traceable
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor)
+Tensor = TypeVar('Tensor', torch.Tensor)
 
 
 @traceable()

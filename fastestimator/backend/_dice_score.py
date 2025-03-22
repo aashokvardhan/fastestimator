@@ -16,8 +16,6 @@ import math
 from typing import List, Optional, TypeVar
 
 import numpy as np
-import tensorflow as tf
-import tensorflow.keras.mixed_precision as mixed_precision
 import torch
 
 from fastestimator.backend._cast import cast
@@ -26,13 +24,11 @@ from fastestimator.backend._reduce_mean import reduce_mean
 from fastestimator.backend._reduce_sum import reduce_sum
 from fastestimator.backend._where import where
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor, np.ndarray)
+Tensor = TypeVar('Tensor', torch.Tensor, np.ndarray)
 
 
 def _get_channel_axis(tensor: Tensor) -> int:
-    if tf.is_tensor(tensor) or isinstance(tensor, np.ndarray):
-        return -1
-    elif isinstance(tensor, torch.Tensor):
+    if isinstance(tensor, torch.Tensor):
         return 1
     else:
         raise ValueError(f"Unsupported tensor type: {type(tensor)}.")
@@ -70,20 +66,6 @@ def dice_score(y_pred: Tensor,
     b = fe.backend.dice_score(y_pred=pred, y_true=true, channel_average=True)  # [0.83636354]
     b = fe.backend.dice_score(y_pred=pred, y_true=true, sample_average=True)  # [0.90909083, 0.79999984, 0.79999995]
 
-    This method can be used with TensorFlow tensors:
-    ```python
-    true = tf.constant([[[[0, 1, 1], [1, 0, 1], [1, 0, 1]],
-                         [[0, 1, 1], [1, 0, 1], [1, 0, 1]],
-                         [[0, 1, 1], [1, 0, 1], [1, 0, 1]]]])
-    pred = tf.constant([[[[0, 1, 0], [1, 0, 0], [1, 0, 1]],
-                         [[0, 1, 1], [1, 0, 1], [0, 0, 0]],
-                         [[0, 0, 1], [1, 0, 1], [1, 0, 1]]]])
-    b = fe.backend.dice_score(y_pred=pred, y_true=true)  # [[0.9090908 , 0.79999983, 0.79999995]]
-    b = fe.backend.dice_score(y_pred=pred, y_true=true, soft_dice=True)  # [[0.9090908 , 0.79999983, 0.79999995]]
-    b = fe.backend.dice_score(y_pred=pred, y_true=true, channel_average=True)  # [0.83636355]
-    b = fe.backend.dice_score(y_pred=pred, y_true=true, sample_average=True)  # [0.9090908 , 0.79999983, 0.79999995]
-    ```
-
     This method can be used with PyTorch tensors:
     ```python
     true = torch.tensor([[[[0, 1, 1], [1, 0, 1], [1, 0, 1]],
@@ -117,7 +99,7 @@ def dice_score(y_pred: Tensor,
         The dice score between `y_pred` and `y_true`.
 
     Raises:
-        AssertionError: If `y_true` or `y_pred` something other than np.array, tensor.Tensor, or tf.Tensor.
+        AssertionError: If `y_true` or `y_pred` something other than np.array, tensor.Tensor.
     """
     y_true = cast(y_true, dtype=y_pred)
     channel_axis = _get_channel_axis(y_pred)
@@ -133,12 +115,8 @@ def dice_score(y_pred: Tensor,
         y_pred = where(y_pred > threshold, 1.0, 0.0)
         y_pred = cast(y_pred, dtype=y_true)
 
-    if mixed_precision.global_policy().compute_dtype == 'float16':
-        # In mixed precision large masks can be too big to reduce without overflowing. Use reduce_mean instead in such
-        # cases in both numerator and denominator: (x/N)/(y/N) = x/y
-        reduce = reduce_mean
-    else:
-        reduce = reduce_sum
+
+    reduce = reduce_sum
 
     numerator = reduce(y_pred * y_true, axis=spacial_axes)
 

@@ -16,14 +16,13 @@ import functools
 import inspect
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union
 
-import tensorflow as tf
 import torch
 from fastestimator.network import BaseNetwork
 from fastestimator.op.tensorop.tensorop import TensorOp
 from fastestimator.util.traceability_util import traceable
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor)
-Model = TypeVar('Model', tf.keras.Model, torch.nn.Module)
+Tensor = TypeVar('Tensor', torch.Tensor)
+Model = TypeVar('Model', torch.nn.Module)
 
 
 @traceable()
@@ -92,14 +91,7 @@ class Repeat(TensorOp):
     def build(self, framework: str, device: Optional[torch.device] = None) -> None:
         self.op.build(framework, device)
         # Below the while function is chosen based on framework
-        if framework == 'tf':
-            # For tensorflow the while function is decided based of object type of 'self.repeat'.
-            if isinstance(self.repeat, int):
-                self.while_fn = self._tf_while_int
-            else:
-                self.while_fn = self._tf_while
-        else:
-            self.while_fn = self._torch_while
+        self.while_fn = self._torch_while
 
     def get_fe_models(self) -> Set[Model]:
         return self.op.get_fe_models()

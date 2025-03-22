@@ -38,12 +38,10 @@ from typing import (
 )
 
 import numpy as np
-import tensorflow as tf
 import torch
 import torch.backends.mps
 from cpuinfo import get_cpu_info
 from pyfiglet import Figlet
-from tensorflow.python.ops.logging_ops import print_v2
 
 from fastestimator.util.base_util import warn
 
@@ -66,21 +64,6 @@ STRING_TO_TORCH_DTYPE = {
     'bool': torch.bool
 }
 
-STRING_TO_TF_DTYPE = {
-    None: None,
-    "string": tf.string,
-    "int8": tf.int8,
-    "uint8": tf.uint8,
-    "int16": tf.int16,
-    "uint16": tf.uint16,
-    "int32": tf.int32,
-    "uint32": tf.uint32,
-    "int64": tf.int64,
-    "uint64": tf.uint64,
-    "float16": tf.float16,
-    "float32": tf.float32,
-    "float64": tf.float64
-}
 
 TENSOR_TO_NP_DTYPE = {
     # Abstract types like 'float' and 'long' are intentionally not included here since they are never actually a
@@ -95,15 +78,6 @@ TENSOR_TO_NP_DTYPE = {
     torch.int32: np.int32,
     torch.int64: np.int64,
     torch.bool: bool,
-    tf.float32: np.float32,
-    tf.float64: np.float64,
-    tf.float16: np.float16,
-    tf.uint8: np.uint8,
-    tf.int8: np.int8,
-    tf.int16: np.int16,
-    tf.int32: np.int32,
-    tf.int64: np.int64,
-    tf.bool: bool,
     np.dtype('float32'): np.float32,
     np.dtype('float64'): np.float64,
     np.dtype('float16'): np.float16,
@@ -115,7 +89,7 @@ TENSOR_TO_NP_DTYPE = {
     np.dtype('bool'): bool,
 }
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor)
+Tensor = TypeVar('Tensor', torch.Tensor)
 T = TypeVar('T')
 
 

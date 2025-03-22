@@ -16,7 +16,6 @@ import math
 from typing import Any, Dict, Iterable, List, Optional, TypeVar, Union
 
 import numpy as np
-import tensorflow as tf
 import torch
 from scipy.linalg import hadamard
 
@@ -27,7 +26,7 @@ from fastestimator.backend._to_tensor import to_tensor
 from fastestimator.op.tensorop.tensorop import TensorOp
 from fastestimator.util.traceability_util import traceable
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor)
+Tensor = TypeVar('Tensor', torch.Tensor)
 
 
 @traceable()

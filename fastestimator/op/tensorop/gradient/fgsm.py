@@ -14,7 +14,6 @@
 # ==============================================================================
 from typing import Any, Dict, Iterable, List, Optional, TypeVar, Union
 
-import tensorflow as tf
 import torch
 
 from fastestimator.backend._clip_by_value import clip_by_value
@@ -25,7 +24,7 @@ from fastestimator.backend._sign import sign
 from fastestimator.op.tensorop.tensorop import TensorOp
 from fastestimator.util.traceability_util import traceable
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor)
+Tensor = TypeVar('Tensor', torch.Tensor)
 
 
 @traceable()

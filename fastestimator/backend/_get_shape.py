@@ -30,12 +30,6 @@ def get_shape(tensor: Array) -> Tuple[int, ...]:
     b = fe.backend.get_shape(n)  # [3,2,2]
     ```
 
-    This method can be used with TensorFlow tensors:
-    ```python
-    t = tf.constant([[[0, 1], [2, 3]], [[4, 5], [6, 7]], [[8, 9], [10, 11]]])
-    b = fe.backend.get_shape(t)  # [3,2,2]
-    ```
-
     This method can be used with PyTorch tensors:
     ```python
     p = torch.tensor([[[0, 1], [2, 3]], [[4, 5], [6, 7]], [[8, 9], [10, 11]]])
@@ -51,9 +45,7 @@ def get_shape(tensor: Array) -> Tuple[int, ...]:
     Raises:
         ValueError: If `tensor` is an unacceptable data type.
     """
-    if tf.is_tensor(tensor):
-        return tf.shape(tensor)
-    elif isinstance(tensor, torch.Tensor):
+    if isinstance(tensor, torch.Tensor):
         return tensor.shape
     elif isinstance(tensor, np.ndarray):
         return tensor.shape

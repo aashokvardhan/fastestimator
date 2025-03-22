@@ -51,18 +51,17 @@ CollectionT = TypeVar('CollectionT', bound=Collection)
 if TYPE_CHECKING:
     # Hide these imports for speed
     import numpy as np
-    import tensorflow as tf
     import torch
 
-    Tensor = Union[torch.Tensor, tf.Tensor, tf.Variable]
+    Tensor = Union[torch.Tensor]
     Array = Union[np.ndarray, Tensor]
     DataSequence = Union[Sequence, Array]
-    Model = Union[tf.keras.Model, torch.nn.Module]
+    Model = Union[torch.nn.Module]
 
     # Use these when you want to indicate that you will return the same class that was input
-    TensorT = TypeVar('TensorT', torch.Tensor, tf.Tensor, tf.Variable)
-    ArrayT = TypeVar('ArrayT', torch.Tensor, tf.Tensor, tf.Variable, np.ndarray)
-    ModelT = TypeVar('ModelT', tf.keras.Model, torch.nn.Module)
+    TensorT = TypeVar('TensorT', torch.Tensor)
+    ArrayT = TypeVar('ArrayT', torch.Tensor, np.ndarray)
+    ModelT = TypeVar('ModelT', torch.nn.Module)
 
 else:
     TensorT = TypeVar('TensorT')

@@ -14,7 +14,6 @@
 # ==============================================================================
 from typing import Any, Dict, Iterable, List, Optional, Tuple, TypeVar, Union
 
-import tensorflow as tf
 import torch
 
 from fastestimator.backend._binary_crossentropy import binary_crossentropy
@@ -23,7 +22,7 @@ from fastestimator.backend._sparse_categorical_crossentropy import sparse_catego
 from fastestimator.op.tensorop.loss.loss import LossOp
 from fastestimator.util.traceability_util import traceable
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor)
+Tensor = TypeVar('Tensor', torch.Tensor)
 
 
 @traceable()
@@ -81,12 +80,7 @@ class CrossEntropy(LossOp):
 
     def build(self, framework: str, device: Optional[torch.device] = None) -> None:
         if self.class_weights:
-            if framework == 'tf':
-                keys_tensor = tf.constant(list(self.class_weights.keys()))
-                vals_tensor = tf.constant(list(self.class_weights.values()))
-                self.class_dict = tf.lookup.StaticHashTable(
-                    tf.lookup.KeyValueTensorInitializer(keys_tensor, vals_tensor), default_value=1.0)
-            elif framework == 'torch':
+            if framework == 'torch':
                 self.class_dict = self.class_weights
             else:
                 raise ValueError("unrecognized framework: {}".format(framework))

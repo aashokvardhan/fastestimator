@@ -20,7 +20,6 @@ from typing import List, Tuple, Union
 
 import cv2
 import numpy as np
-import tensorflow as tf
 import wget
 
 from fastestimator.backend._zscore import zscore

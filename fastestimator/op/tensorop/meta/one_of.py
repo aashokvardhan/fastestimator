@@ -15,15 +15,14 @@
 from typing import Any, Dict, List, Optional, Set, TypeVar, Union
 
 import numpy as np
-import tensorflow as tf
 import torch
 
 from fastestimator.backend._cast import cast
 from fastestimator.op.tensorop.tensorop import TensorOp
 from fastestimator.util.traceability_util import traceable
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor)
-Model = TypeVar('Model', tf.keras.Model, torch.nn.Module)
+Tensor = TypeVar('Tensor', torch.Tensor)
+Model = TypeVar('Model', torch.nn.Module)
 
 
 @traceable()
@@ -89,9 +88,5 @@ class OneOf(TensorOp):
         Returns:
             The `data` after application of one of the available numpyOps.
         """
-        if self.framework == 'tf':
-            idx = cast(tf.random.categorical(tf.math.log([self.probs]), 1), dtype='int32')[0, 0]
-            results = tf.switch_case(idx, [lambda op=op: op.forward(data, state) for op in self.ops])
-        else:
-            results = np.random.choice(self.ops, p=self.probs).forward(data, state)
+        results = np.random.choice(self.ops, p=self.probs).forward(data, state)
         return results

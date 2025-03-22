@@ -14,7 +14,6 @@
 # ==============================================================================
 from typing import Any, Dict, Iterable, List, Optional, TypeVar, Union
 
-import tensorflow as tf
 import torch
 
 from fastestimator.backend._get_gradient import get_gradient
@@ -22,7 +21,7 @@ from fastestimator.op.tensorop.tensorop import TensorOp
 from fastestimator.util.traceability_util import traceable
 from fastestimator.util.base_util import to_list
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor)
+Tensor = TypeVar('Tensor', torch.Tensor)
 
 
 @traceable()
@@ -44,7 +43,7 @@ class GradientOp(TensorOp):
                  finals: Union[str, List[str]],
                  outputs: Union[str, List[str]],
                  inputs: Union[None, str, List[str]] = None,
-                 model: Union[None, tf.keras.Model, torch.nn.Module] = None,
+                 model: Union[None, torch.nn.Module] = None,
                  mode: Union[None, str, Iterable[str]] = None,
                  ds_id: Union[None, str, Iterable[str]] = None):
         inputs = to_list(inputs)
@@ -55,7 +54,7 @@ class GradientOp(TensorOp):
             assert len(inputs) == len(finals) == len(outputs), \
                 "GradientOp requires the same number of inputs, finals, and outputs"
         else:
-            assert isinstance(model, (tf.keras.Model, torch.nn.Module)), "Unrecognized model format"
+            assert isinstance(model, torch.nn.Module), "Unrecognized model format"
             assert len(finals) == len(outputs), "GradientOp requires the same number of finals, and outputs"
         inputs.extend(finals)
         super().__init__(inputs=inputs, outputs=outputs, mode=mode, ds_id=ds_id)
@@ -80,12 +79,7 @@ class GradientOp(TensorOp):
                 results.append(get_gradient(final, initial, tape=state['tape'], retain_graph=retain_graph))
         else:
             finals = data
-            if self.framework == "tf":
-                trainable_params = self.model.trainable_variables
-                for idx, final in enumerate(finals):
-                    gradient = get_gradient(final, trainable_params, tape=state['tape'])
-                    results.append(gradient)
-            elif self.framework == "torch":
+            if self.framework == "torch":
                 trainable_params = [p for p in self.model.parameters() if p.requires_grad]
                 for idx, final in enumerate(finals):
                     # get_gradient

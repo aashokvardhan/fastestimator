@@ -15,7 +15,6 @@
 from math import e
 from typing import Any, Dict, List, Optional, TypeVar, Union
 
-import tensorflow as tf
 import torch
 
 from fastestimator.backend._exp import exp
@@ -27,7 +26,7 @@ from fastestimator.backend._reduce_mean import reduce_mean
 from fastestimator.op.tensorop.loss.loss import LossOp
 from fastestimator.util.util import to_number
 
-Tensor = TypeVar('Tensor', tf.Tensor, tf.Variable, torch.Tensor)
+Tensor = TypeVar('Tensor', torch.Tensor)
 
 
 class SuperLoss(LossOp):
@@ -80,29 +79,7 @@ class SuperLoss(LossOp):
 
     def build(self, framework: str, device: Optional[torch.device] = None) -> None:
         self.loss.build(framework, device)
-        if framework == 'tf':
-            self.initialized = {
-                'train': tf.Variable(False, trainable=False),
-                'eval': tf.Variable(False, trainable=False),
-                'test': tf.Variable(False, trainable=False),
-                'infer': tf.Variable(False, trainable=False)
-            }
-            if self.tau_method == 'exp':
-                self.tau = {
-                    'train': tf.Variable(0.0, trainable=False),
-                    'eval': tf.Variable(0.0, trainable=False),
-                    'test': tf.Variable(0.0, trainable=False),
-                    'infer': tf.Variable(0.0, trainable=False)
-                }
-            else:
-                self.tau = {
-                    'train': tf.Variable(self.tau_method, trainable=False),
-                    'eval': tf.Variable(self.tau_method, trainable=False),
-                    'test': tf.Variable(self.tau_method, trainable=False),
-                    'infer': tf.Variable(self.tau_method, trainable=False)
-                }
-            self.cap = tf.constant(self.cap)
-        elif framework == 'torch':
+        if framework == 'torch':
             self.initialized = {
                 'train': torch.tensor(False).to(device),
                 'eval': torch.tensor(False).to(device),

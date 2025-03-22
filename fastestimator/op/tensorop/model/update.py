@@ -14,7 +14,6 @@
 # ==============================================================================
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, TypeVar, Union
 
-import tensorflow as tf
 import torch
 
 from fastestimator.backend._get_gradient import get_gradient
@@ -25,8 +24,8 @@ from fastestimator.util.base_util import to_set, warn
 from fastestimator.util.traceability_util import traceable
 from fastestimator.util.util import get_num_gpus
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor)
-Model = TypeVar('Model', tf.keras.Model, torch.nn.Module)
+Tensor = TypeVar('Tensor', torch.Tensor)
+Model = TypeVar('Model', torch.nn.Module)
 
 
 @traceable()
@@ -63,23 +62,19 @@ class UpdateOp(TensorOp):
     _old_defer: bool  # Used by the Network to automagically fix defer values
 
     def __init__(self,
-                 model: Union[tf.keras.Model, torch.nn.Module],
+                 model: torch.nn.Module,
                  loss_name: str,
                  gradients: Optional[str] = None,
                  mode: Union[None, str, Iterable[str]] = "train",
                  ds_id: Union[None, str, Iterable[str]] = None,
                  merge_grad: int = 1,
                  defer: bool = False):
-        self.extra_loss = isinstance(model, tf.keras.Model) and model.losses
         if gradients is None:
             super().__init__(inputs=loss_name, outputs=None, mode=mode, ds_id=ds_id)
         else:
             if model.mixed_precision:
                 raise ValueError("Mixed precision training cannot take input gradients, because the gradients need to "
                                  "be computed in this module")
-            if self.extra_loss:
-                warn("Extra model losses are detected and they will be ignored since the gradients are not computed " +
-                     "in UpdateOp class.")
             super().__init__(inputs=gradients, outputs=None, mode=mode, ds_id=ds_id)
 
         if get_num_gpus() > 1 and merge_grad > 1:
@@ -106,12 +101,8 @@ class UpdateOp(TensorOp):
         self.framework = framework
 
         if self.merge_grad > 1:
-            if framework == "tf":
-                self.step = tf.Variable(0, trainable=False, dtype=tf.int64)
-                self.grad_sum = [tf.Variable(tf.zeros_like(x), trainable=False) for x in self.model.trainable_variables]
-            else:  # framework == "torch"
-                self.step = torch.tensor(0, dtype=torch.int64).to(device)
-                self.grad_sum = [torch.zeros_like(x).to(device) for x in self.model.parameters() if x.requires_grad]
+            self.step = torch.tensor(0, dtype=torch.int64).to(device)
+            self.grad_sum = [torch.zeros_like(x).to(device) for x in self.model.parameters() if x.requires_grad]
 
     def get_fe_models(self) -> Set[Model]:
         return {self.model}
@@ -149,8 +140,6 @@ class UpdateOp(TensorOp):
         Returns:
             Processed loss.
         """
-        if self.extra_loss:
-            loss = loss + tf.reduce_sum(self.model.losses)
         loss = reduce_mean(loss)
 
         if self.framework == "tf":

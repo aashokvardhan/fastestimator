@@ -22,12 +22,7 @@ from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional
     Union, overload
 
 import gdown
-import tensorflow as tf
-import tensorflow.keras.mixed_precision as mixed_precision_tf
 import torch
-from tensorflow.keras import Sequential
-from tensorflow.keras.mixed_precision import LossScaleOptimizer
-from tensorflow.python.distribute.values import DistributedValues
 from typing_extensions import Self
 
 import fastestimator as fe
@@ -446,7 +441,7 @@ def Network(
 
     Raises:
         AssertionError: If TensorFlow and PyTorch models are mixed, or if no models are provided.
-        ValueError: If a model is provided whose type cannot be identified as either TensorFlow or PyTorch.
+        ValueError: If a model is provided whose type cannot be identified as PyTorch.
     """
     models = _collect_models(ops)
     framework = set()
@@ -454,21 +449,17 @@ def Network(
     for model in models:
         # 'Model' and 'model' should not be considered unique in case you are saving on a non-case-sensitive filesystem
         model_names.add(model.model_name.lower())
-        if isinstance(model, tf.keras.Model):
-            framework.add("tf")
-        elif isinstance(model, torch.nn.Module):
+        if isinstance(model, torch.nn.Module):
             framework.add("torch")
         else:
             framework.add("unknown")
     if len(framework) == 0:
-        framework.add('tf')  # We will use tf as default framework if no models are found
-    assert len(framework) == 1, "please make sure either tensorflow or torch model is used in network"
+        framework.add('torch')  # We will use tf as default framework if no models are found
+    assert len(framework) == 1, "please make sure torch model is used in network"
     assert len(model_names) == len(models), "all models must have unique model names"
 
     framework = framework.pop()
-    if framework == "tf":
-        network = TFNetwork(ops, pops, slicers)
-    elif framework == "torch":
+    if framework == "torch":
         network = TorchNetwork(ops, pops, slicers)
     else:
         raise ValueError("Unknown model type")

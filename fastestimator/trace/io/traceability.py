@@ -30,7 +30,6 @@ import dot2tex as d2t
 import jsonpickle
 import numpy as np
 import pydot
-import tensorflow as tf
 import torch
 from cpuinfo import get_cpu_info
 from natsort import humansorted
@@ -299,7 +298,7 @@ class Traceability(Trace):
         with self.doc.create(Section("Parameters")):
             model_ids = {
                 FEID(id(model))
-                for model in self.system.network.models if isinstance(model, (tf.keras.Model, torch.nn.Module))
+                for model in self.system.network.models if isinstance(model, torch.nn.Module)
             }
             # Locate the datasets in order to provide extra details about them later in the summary
             datasets = {}
@@ -333,12 +332,12 @@ class Traceability(Trace):
             start = self._loop_tables(start, classes=Op, name="Operators", model_ids=model_ids, datasets=datasets)
             start = self._loop_tables(start, classes=Slicer, name="Slicers", model_ids=model_ids, datasets=datasets)
             start = self._loop_tables(start,
-                                      classes=(Dataset, tf.data.Dataset),
+                                      classes=(Dataset),
                                       name="Datasets",
                                       model_ids=model_ids,
                                       datasets=datasets)
             start = self._loop_tables(start,
-                                      classes=(tf.keras.Model, torch.nn.Module),
+                                      classes=(torch.nn.Module),
                                       name="Models",
                                       model_ids=model_ids,
                                       datasets=datasets)
@@ -348,7 +347,7 @@ class Traceability(Trace):
                                       model_ids=model_ids,
                                       datasets=datasets)
             start = self._loop_tables(start,
-                                      classes=(np.ndarray, tf.Tensor, tf.Variable, torch.Tensor),
+                                      classes=(np.ndarray, torch.Tensor),
                                       name="Tensors",
                                       model_ids=model_ids,
                                       datasets=datasets)
@@ -366,7 +365,7 @@ class Traceability(Trace):
         try:
             parameters["no_of_model_parameters"] = {
                 model.model_name.lower(): get_model_parameters(model)
-                for model in self.system.network.models if isinstance(model, (tf.keras.Model, torch.nn.Module))
+                for model in self.system.network.models if isinstance(model,  torch.nn.Module)
             }
         except Exception as e:
             print(e)
@@ -375,7 +374,7 @@ class Traceability(Trace):
         try:
             parameters["lr"] = {
                 model.model_name.lower(): fe.backend.get_lr(model=model)
-                for model in self.system.network.models if isinstance(model, (tf.keras.Model, torch.nn.Module))
+                for model in self.system.network.models if isinstance(model, torch.nn.Module)
             }
         except Exception as e:
             print(e)

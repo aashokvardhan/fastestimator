@@ -16,7 +16,6 @@ import inspect
 from functools import partial
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 
-import tensorflow as tf
 import torch
 
 from fastestimator.backend._feed_forward import feed_forward
@@ -71,17 +70,7 @@ class ModelOp(TensorOp):
             warn("Layer names / ids may be different between single-gpu and multi-gpu environments")
         for intermediate_layer in intermediate_layers:
             storage = {}
-            if isinstance(model, tf.keras.Model):
-                layers = list(model._flatten_layers(include_self=False, recursive=True))
-                if isinstance(intermediate_layer, int):
-                    intermediate_layer = layers[intermediate_layer]
-                else:
-                    layers = {layer.name: layer for layer in layers}
-                    intermediate_layer = layers[intermediate_layer]
-                if not hasattr(intermediate_layer, 'fe_original_call'):
-                    intermediate_layer.fe_original_call = intermediate_layer.call
-                    intermediate_layer.call = partial(_capture_call_tf, fe_storage=storage, fe_layer=intermediate_layer)
-            elif isinstance(model, torch.nn.Module):
+            if isinstance(model, torch.nn.Module):
                 layers = model.named_modules()
                 if get_num_devices() > 1:
                     # Try to automatically adjust parameters for multi-gpu so that user doesn't need to change code

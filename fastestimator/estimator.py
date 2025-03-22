@@ -19,9 +19,7 @@ import random
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Union, overload
 
 import numpy as np
-import tensorflow as tf
 import torch
-from tensorflow.python.distribute.input_lib import DistributedDataset
 from torch.utils.data import DataLoader
 
 import fastestimator as fe
@@ -30,15 +28,26 @@ from fastestimator.backend._to_tensor import to_tensor
 from fastestimator.backend._to_type import to_type
 from fastestimator.network import BaseNetwork, TFNetwork, TorchNetwork
 from fastestimator.pipeline import Pipeline
-from fastestimator.schedule.schedule import Scheduler, get_current_items, get_signature_epochs
+from fastestimator.schedule.schedule import (
+    Scheduler,
+    get_current_items,
+    get_signature_epochs,
+)
 from fastestimator.summary.history import HistoryRecorder
 from fastestimator.summary.system import Summary, System
 from fastestimator.trace.io.best_model_saver import BestModelSaver
 from fastestimator.trace.io.model_saver import ModelSaver
 from fastestimator.trace.io.restore_wizard import RestoreWizard
 from fastestimator.trace.io.traceability import Traceability
-from fastestimator.trace.trace import EvalEssential, Logger, PerDSTrace, TestEssential, Trace, TrainEssential, \
-    sort_traces
+from fastestimator.trace.trace import (
+    EvalEssential,
+    Logger,
+    PerDSTrace,
+    TestEssential,
+    Trace,
+    TrainEssential,
+    sort_traces,
+)
 from fastestimator.types import FilteredData
 from fastestimator.util.base_util import NonContext, filter_nones, to_list, to_set, warn
 from fastestimator.util.data import Data
@@ -49,8 +58,6 @@ from fastestimator.util.util import Suppressor, draw
 def _verify_dependency_versions() -> None:
     """Print warning messages if the user is using unexpected versions of TF or torch.
     """
-    if tf.__version__ not in {'2.15.1', '2.15.0'}:
-        warn(f"Expected TensorFlow version 2.15.0 but found {tf.__version__}. The framework may not work as expected.")
     if torch.__version__ not in ('2.3.1', '2.3.1+cpu', '2.3.1+cu121'):
         warn(f"Expected PyTorch version 2.3.1 but found {torch.__version__}. The framework may not work as expected.")
 
@@ -324,7 +331,8 @@ class Estimator:
         """
         with Suppressor():
             # TODO - remove this after updating to TF > 2.11
-            from tensorflow.python.autograph.pyct.static_analysis.liveness import Analyzer
+            from tensorflow.python.autograph.pyct.static_analysis.liveness import (
+                Analyzer, )
             Analyzer.lamba_check(None, None)  # type: ignore
         all_traces = sort_traces(get_current_items(self.traces_in_use, run_modes=run_modes), ds_ids=[])
         with NonContext() if fe.fe_history_path is False else HistoryRecorder(
@@ -624,7 +632,7 @@ class EarlyStop(Exception):
 def enable_deterministic(seed: int) -> None:
     """Invoke to set random seed for deterministic training.
 
-    The determinism only works for tensorflow >= 2.1 and pytorch >= 1.14, and some model layers don't support.
+    The determinism only works for pytorch >= 1.14, and some model layers don't support.
 
     Known failing layers:
     * tf.keras.layers.UpSampling2D
@@ -637,10 +645,7 @@ def enable_deterministic(seed: int) -> None:
     os.environ['TF_DETERMINISTIC_OPS'] = str(1)
     random.seed(seed)
     np.random.seed(seed)
-    tf.random.set_seed(seed)
     torch.manual_seed(seed)
-    tf.keras.utils.set_random_seed(seed)
-    tf.config.experimental.enable_op_determinism()
 
 
 def record_history(path: Union[bool, str]) -> None:

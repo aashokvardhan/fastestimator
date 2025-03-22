@@ -14,21 +14,13 @@
 # ==============================================================================
 from typing import Optional, TypeVar
 
-import tensorflow as tf
 import torch
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor)
+Tensor = TypeVar('Tensor', torch.Tensor)
 
 
 def watch(tensor: Tensor, tape: Optional[tf.GradientTape] = None) -> Tensor:
     """Monitor the given `tensor` for later gradient computations.
-
-    This method can be used with TensorFlow tensors:
-    ```python
-    x = tf.ones((3,28,28,1))
-    with tf.GradientTape(persistent=True) as tape:
-        x = fe.backend.watch(x, tape=tape)
-    ```
 
     This method can be used with PyTorch tensors:
     ```python
@@ -47,10 +39,7 @@ def watch(tensor: Tensor, tape: Optional[tf.GradientTape] = None) -> Tensor:
     Raises:
         ValueError: If `tensor` is an unacceptable data type.
     """
-    if tf.is_tensor(tensor):
-        tape.watch(tensor)
-        return tensor
-    elif isinstance(tensor, torch.Tensor):
+    if isinstance(tensor, torch.Tensor):
         if tensor.requires_grad:
             return tensor
         # It is tempting to just do tensor.requires_grad = True here, but that will lead to trouble

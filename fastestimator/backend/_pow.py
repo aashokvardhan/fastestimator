@@ -15,10 +15,9 @@
 from typing import TypeVar, Union
 
 import numpy as np
-import tensorflow as tf
 import torch
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor, np.ndarray)
+Tensor = TypeVar('Tensor', torch.Tensor, np.ndarray)
 
 
 def pow(tensor: Tensor, power: Union[int, float, Tensor] ) -> Tensor:
@@ -28,12 +27,6 @@ def pow(tensor: Tensor, power: Union[int, float, Tensor] ) -> Tensor:
     ```python
     n = np.array([-2, 7, -19])
     b = fe.backend.pow(n, 2)  # [4, 49, 361]
-    ```
-
-    This method can be used with TensorFlow tensors:
-    ```python
-    t = tf.constant([-2, 7, -19])
-    b = fe.backend.pow(t, 2)  # [4, 49, 361]
     ```
 
     This method can be used with PyTorch tensors:
@@ -52,9 +45,7 @@ def pow(tensor: Tensor, power: Union[int, float, Tensor] ) -> Tensor:
     Raises:
         ValueError: If `tensor` is an unacceptable data type.
     """
-    if tf.is_tensor(tensor):
-        return tf.pow(tensor, power)
-    elif isinstance(tensor, torch.Tensor):
+    if isinstance(tensor, torch.Tensor):
         return tensor.pow(power)
     elif isinstance(tensor, np.ndarray):
         return np.power(tensor, power)

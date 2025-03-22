@@ -15,13 +15,12 @@
 from typing import Optional, Sequence, Tuple, TypeVar, Union
 
 import numpy as np
-import tensorflow as tf
 import torch
 import torchvision.transforms as T
 
 from fastestimator.backend._convert_tensor_precision import convert_tensor_precision
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor, np.ndarray)
+Tensor = TypeVar('Tensor', torch.Tensor, np.ndarray)
 
 
 def normalize(tensor: Tensor,
@@ -37,14 +36,6 @@ def normalize(tensor: Tensor,
         n = np.array([[[1.0, 2.0], [3.0, 4.0]], [[5.0, 6.0], [7.0, 8.0]]])
         b = fe.backend.tensor_normalize(n, 0.5625, 0.2864, 8.0)  # ([[[-1.52752516, -1.0910894 ], [-0.65465364, -0.21821788]], [[ 0.21821788,  0.65465364], [ 1.0910894 ,  1.52752516]]])
         b = fe.backend.tensor_normalize(n, (0.5, 0.625), (0.2795, 0.2795), 8.0) # [[[-1.34164073, -1.34164073], [-0.44721358, -0.44721358]], [[ 0.44721358,  0.44721358], [ 1.34164073,  1.34164073]]]
-
-
-        This method can be used with TensorFlow tensors:
-        python
-        t = tf.constant([[[1.0, 2.0], [3.0, 4.0]], [[5.0, 6.0], [7.0, 8.0]]])
-        b = fe.backend.tensor_normalize(n, 0.5625, 0.2864, 8.0)  # ([[[-1.52752516, -1.0910894 ], [-0.65465364, -0.21821788]], [[ 0.21821788,  0.65465364], [ 1.0910894 ,  1.52752516]]])
-        b = fe.backend.tensor_normalize(n, (0.5, 0.625), (0.2795, 0.2795), 8.0) # [[[-1.34164073, -1.34164073], [-0.44721358, -0.44721358]], [[ 0.44721358,  0.44721358], [ 1.34164073,  1.34164073]]]
-
 
         This method can be used with PyTorch tensors:
         python
@@ -91,9 +82,7 @@ def get_framework(tensor: Tensor) -> Tuple[str, Optional[str]]:
             device: The device on which the method is executed (Eg. cuda, cpu). Only applicable to torch.
     """
     device = None
-    if tf.is_tensor(tensor):
-        framework = 'tf'
-    elif isinstance(tensor, torch.Tensor):
+    if isinstance(tensor, torch.Tensor):
         framework = 'torch'
         device = tensor.device
     elif isinstance(tensor, np.ndarray):
@@ -122,8 +111,6 @@ def get_scaled_data(data: Union[float, Sequence[float]] = (0.485, 0.456, 0.406),
     """
     if framework == 'torch':
         data = torch.tensor(data, device=device)
-    elif framework == 'tf':
-        data = tf.constant(data)
     else:
         data = np.array(data)
 

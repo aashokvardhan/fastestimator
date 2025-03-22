@@ -14,13 +14,12 @@
 # ==============================================================================
 from typing import Dict, Optional, TypeVar
 
-import tensorflow as tf
 import torch
 
 from fastestimator.backend._reduce_mean import reduce_mean
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor)
-Weight_Dict = TypeVar('Weight_Dict', tf.lookup.StaticHashTable, Dict[int, float])
+Tensor = TypeVar('Tensor', torch.Tensor)
+Weight_Dict = TypeVar('Weight_Dict', Dict[int, float])
 
 
 def categorical_crossentropy(y_pred: Tensor,
@@ -33,18 +32,6 @@ def categorical_crossentropy(y_pred: Tensor,
     Note that if any of the `y_pred` values are exactly 0, this will result in a NaN output. If `from_logits` is
     False, then each entry of `y_pred` should sum to 1. If they don't sum to 1 then tf and torch backends will
     result in different numerical values.
-
-    This method can be used with TensorFlow tensors:
-    ```python
-    true = tf.constant([[0, 1, 0], [1, 0, 0], [0, 0, 1]])
-    pred = tf.constant([[0.1, 0.8, 0.1], [0.9, 0.05, 0.05], [0.1, 0.2, 0.7]])
-    weights = tf.lookup.StaticHashTable(
-        tf.lookup.KeyValueTensorInitializer(tf.constant([1, 2]), tf.constant([2.0, 3.0])), default_value=1.0)
-    b = fe.backend.categorical_crossentropy(y_pred=pred, y_true=true)  # 0.228
-    b = fe.backend.categorical_crossentropy(y_pred=pred, y_true=true, average_loss=False)  # [0.223, 0.105, 0.356]
-    b = fe.backend.categorical_crossentropy(y_pred=pred, y_true=true, average_loss=False, class_weights=weights)
-    # [0.446, 0.105, 1.068]
-    ```
 
     This method can be used with PyTorch tensors:
     ```python
@@ -73,22 +60,17 @@ def categorical_crossentropy(y_pred: Tensor,
     Raises:
         AssertionError: If `y_true` or `y_pred` are unacceptable data types.
     """
-    assert isinstance(y_pred, (tf.Tensor, torch.Tensor)), "only support tf.Tensor or torch.Tensor as y_pred"
-    assert isinstance(y_true, (tf.Tensor, torch.Tensor)), "only support tf.Tensor or torch.Tensor as y_true"
-    if tf.is_tensor(y_pred):
-        ce = tf.losses.categorical_crossentropy(y_pred=y_pred, y_true=y_true, from_logits=from_logits)
-        if class_weights is not None:
-            sample_weights = class_weights.lookup(tf.math.argmax(y_true, axis=-1, output_type=class_weights.key_dtype))
-            ce = ce * sample_weights
-    else:
-        y_true = y_true.to(torch.float)
-        ce = _categorical_crossentropy_torch(y_pred=y_pred, y_true=y_true, from_logits=from_logits)
-        if class_weights is not None:
-            y_class = torch.argmax(y_true, dim=1)
-            sample_weights = torch.ones_like(y_class, dtype=torch.float)
-            for key in class_weights.keys():
-                sample_weights[y_class == key] = class_weights[key]
-            ce = ce * sample_weights.reshape(ce.shape)
+    assert isinstance(y_pred, (torch.Tensor)), "only support torch.Tensor as y_pred"
+    assert isinstance(y_true, (torch.Tensor)), "only support torch.Tensor as y_true"
+
+    y_true = y_true.to(torch.float)
+    ce = _categorical_crossentropy_torch(y_pred=y_pred, y_true=y_true, from_logits=from_logits)
+    if class_weights is not None:
+        y_class = torch.argmax(y_true, dim=1)
+        sample_weights = torch.ones_like(y_class, dtype=torch.float)
+        for key in class_weights.keys():
+            sample_weights[y_class == key] = class_weights[key]
+        ce = ce * sample_weights.reshape(ce.shape)
 
     if average_loss:
         ce = reduce_mean(ce)

@@ -16,7 +16,6 @@ from operator import gt, lt
 from typing import Optional, Union
 
 import numpy as np
-import tensorflow as tf
 import torch
 
 from fastestimator.backend._load_model import load_model

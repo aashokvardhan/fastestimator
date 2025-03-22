@@ -14,7 +14,6 @@
 # ==============================================================================
 from typing import Any, Dict, Iterable, List, TypeVar, Union
 
-import tensorflow as tf
 import torch
 
 from fastestimator.backend._gather_from_batch import gather_from_batch
@@ -23,7 +22,7 @@ from fastestimator.op.tensorop.tensorop import TensorOp
 from fastestimator.util.traceability_util import traceable
 from fastestimator.util.base_util import to_list
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor)
+Tensor = TypeVar('Tensor', torch.Tensor)
 
 
 @traceable()
@@ -61,7 +60,7 @@ class Gather(TensorOp):
         results = []
         for idx, tensor in enumerate(inputs):
             # Check len(indices[0]) since an empty indices element is used to trigger the else
-            if tf.is_tensor(indices[0]) or isinstance(indices[0], torch.Tensor):
+            if isinstance(indices[0], torch.Tensor):
                 elem_len = indices[0].shape[0]
             else:
                 elem_len = len(indices[0])

@@ -15,7 +15,6 @@
 from typing import Collection, Literal, Union, overload
 
 import numpy as np
-import tensorflow as tf
 import torch
 
 from fastestimator.types import Array, ArrayT, CollectionT

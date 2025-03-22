@@ -13,8 +13,6 @@
 # limitations under the License.
 # ==============================================================================
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
-
-import tensorflow as tf
 import torch
 
 from fastestimator.backend._expand_dims import expand_dims

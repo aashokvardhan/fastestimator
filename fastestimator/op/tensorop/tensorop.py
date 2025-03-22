@@ -14,14 +14,13 @@
 # ==============================================================================
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, TypeVar, Union
 
-import tensorflow as tf
 import torch
 
 from fastestimator.op.op import Op
 from fastestimator.util.traceability_util import traceable
 
-Tensor = TypeVar('Tensor', tf.Tensor, torch.Tensor)
-Model = TypeVar('Model', tf.keras.Model, torch.nn.Module)
+Tensor = TypeVar('Tensor', torch.Tensor)
+Model = TypeVar('Model', torch.nn.Module)
 
 
 @traceable()

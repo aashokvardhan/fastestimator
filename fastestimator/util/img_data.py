@@ -26,9 +26,8 @@ from fastestimator.util.base_util import FigureFE, in_notebook, to_list
 from fastestimator.util.util import to_number
 
 if TYPE_CHECKING:
-    import tensorflow as tf
 
-    Tensor = TypeVar('Tensor', np.ndarray, tf.Tensor, torch.Tensor)
+    Tensor = TypeVar('Tensor', np.ndarray, torch.Tensor)
     BoundingBox = TypeVar('BoundingBox',
                           Tuple[Union[int, float], Union[int, float], Union[int, float], Union[int, float]],
                           Tuple[Union[int, float], Union[int, float], Union[int, float], Union[int, float], str])

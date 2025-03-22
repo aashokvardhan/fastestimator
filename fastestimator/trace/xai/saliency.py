@@ -16,7 +16,6 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional, Sequence, Iterable, Tuple, TypeVar, Union
 
 import numpy as np
-import tensorflow as tf
 import torch
 
 from fastestimator.backend._concat import concat
@@ -31,7 +30,7 @@ from fastestimator.util.util import to_number
 from fastestimator.util.base_util import to_list
 from fastestimator.xai.saliency import SaliencyNet
 
-Model = TypeVar('Model', tf.keras.Model, torch.nn.Module)
+Model = TypeVar('Model', torch.nn.Module)
 
 
 @traceable()
