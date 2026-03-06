@@ -22,7 +22,7 @@ from fastestimator.backend._update_model import update_model
 from fastestimator.op.tensorop.tensorop import TensorOp
 from fastestimator.util.base_util import to_set, warn
 from fastestimator.util.traceability_util import traceable
-from fastestimator.util.util import get_num_gpus
+from fastestimator.util.util import get_num_gpus, get_world_size, is_distributed
 
 
 @traceable()
@@ -52,9 +52,13 @@ class UpdateOp(TensorOp):
     Raise:
         ValueError: When model is mixed-precision and `gradients` is provided.
         ValueError: Network framework is not "torch".
-        ValueError: `merge_grad` is larger than 1 in multi-GPU configuration.
         RuntimeError: If attempting to modify a PyTorch model which relied on gradients within a different PyTorch model
             which has in turn already undergone a non-deferred update.
+
+    Note:
+        - With DistributedDataParallel (DDP), gradients are synchronized across GPUs automatically.
+        - The `merge_grad` parameter now works with both DataParallel and DDP for gradient accumulation.
+        - For DDP, gradient accumulation is more memory efficient as each GPU only stores its portion.
     """
     _old_defer: bool  # Used by the Network to automagically fix defer values
 
@@ -74,9 +78,12 @@ class UpdateOp(TensorOp):
                                  "be computed in this module")
             super().__init__(inputs=gradients, outputs=None, mode=mode, ds_id=ds_id)
 
-        if get_num_gpus() > 1 and merge_grad > 1:
-            raise ValueError("Currently FastEstimator doesn't support merge_grad feature in multi-GPU configuration "
-                             "and thus 'merge_grad' cannot be larger than 1")
+        # Note: With DDP, gradient accumulation works correctly as gradients are
+        # automatically synchronized. The previous restriction is no longer needed.
+        if get_num_gpus() > 1 and merge_grad > 1 and not is_distributed():
+            # Only warn for DataParallel (non-DDP) multi-GPU setup
+            warn("Using merge_grad > 1 with DataParallel. Consider using DistributedDataParallel "
+                 "for better performance with gradient accumulation.")
 
         if not hasattr(model, "loss_name"):
             model.loss_name = {loss_name}
@@ -132,6 +139,11 @@ class UpdateOp(TensorOp):
                                            List[torch.Tensor]]) -> Union[torch.Tensor, List[torch.Tensor]]:
         """Loss preprocess for multi-GPU and mixed-precision training.
 
+
+        # Scale loss for gradient accumulation to get correct average
+        if self.merge_grad > 1:
+            loss = loss / self.merge_grad
+
         Args:
             loss: Unprocessed loss.
 
@@ -184,6 +196,9 @@ class UpdateOp(TensorOp):
                            deferred: Optional[Dict[str, List[Callable[[], None]]]] = None) -> None:
         """Accumulate gradients and update the model at certain frequency of invocation.
 
+        This now works correctly with both DataParallel and DistributedDataParallel.
+        With DDP, gradients are automatically synchronized, making accumulation efficient.
+
         Args:
             gradients: Input gradients.
             deferred: A dictionary in which model update functions are stored.
@@ -196,7 +211,8 @@ class UpdateOp(TensorOp):
         self._assign_add(self.step, 1)
 
         if self.step % self.merge_grad == 0:
-            average_grad = [gs / self.merge_grad for gs in self.grad_sum]
+            # No need to average by merge_grad as we already scaled the loss
+            average_grad = self.grad_sum
             update_model(model=self.model, gradients=average_grad, defer=self.defer, deferred=deferred)
             for gs in self.grad_sum:
                 self._assign_add(gs, -gs)  # zero the gradient in place

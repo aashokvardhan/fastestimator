@@ -89,4 +89,6 @@ def _torch_step(optimizer: torch.optim.Optimizer) -> None:
     else:
         optimizer.scaler.step(optimizer)
         optimizer.scaler.update()
-    optimizer.zero_grad()
+    # set_to_none=True is faster than zeroing gradients because it avoids a memset operation;
+    # subsequent gradient accumulations will use assignment instead of add when grad is None.
+    optimizer.zero_grad(set_to_none=True)

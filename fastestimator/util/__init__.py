@@ -35,7 +35,13 @@ __getattr__, __dir__, __all__ = lazy.attach(__name__,
                                                                    'get_batch_size', 'get_device', 'get_num_devices',
                                                                    'get_num_gpus', 'pad_batch', 'pad_data',
                                                                    'to_number', 'move_tensors_to_device',
-                                                                   'detach_tensors', 'is_valid_file'],
+                                                                   'detach_tensors', 'detach_and_move_to_cpu',
+                                                                   'is_valid_file', 'is_distributed',
+                                                                   'get_local_rank', 'get_world_size'],
+                                                          'distributed': ['init_distributed_mode', 'cleanup_distributed',
+                                                                          'reduce_tensor', 'gather_tensor',
+                                                                          'broadcast_tensor', 'synchronize',
+                                                                          'is_main_process', 'setup_for_distributed'],
                                                           'cli_util': ['parse_string_to_python'],
                                                           'wget_util': ['bar_custom', 'callback_progress']
                                                           })
@@ -68,6 +74,16 @@ if TYPE_CHECKING:
     )
     from fastestimator.util.cli_util import parse_string_to_python
     from fastestimator.util.data import Data
+    from fastestimator.util.distributed import (
+        broadcast_tensor,
+        cleanup_distributed,
+        gather_tensor,
+        init_distributed_mode,
+        is_main_process,
+        reduce_tensor,
+        setup_for_distributed,
+        synchronize,
+    )
     from fastestimator.util.img_data import BatchDisplay, GridDisplay, ImageDisplay
     from fastestimator.util.latex_util import (
         AdjustBox,
@@ -86,12 +102,16 @@ if TYPE_CHECKING:
         Suppressor,
         Timer,
         cpu_count,
+        detach_and_move_to_cpu,
         detach_tensors,
         draw,
         get_batch_size,
         get_device,
+        get_local_rank,
         get_num_devices,
         get_num_gpus,
+        get_world_size,
+        is_distributed,
         is_valid_file,
         move_tensors_to_device,
         pad_batch,

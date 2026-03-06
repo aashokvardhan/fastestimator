@@ -28,15 +28,26 @@ from fastestimator.backend._to_tensor import to_tensor
 from fastestimator.backend._to_type import to_type
 from fastestimator.network import BaseNetwork
 from fastestimator.pipeline import Pipeline
-from fastestimator.schedule.schedule import Scheduler, get_current_items, get_signature_epochs
+from fastestimator.schedule.schedule import (
+    Scheduler,
+    get_current_items,
+    get_signature_epochs,
+)
 from fastestimator.summary.history import HistoryRecorder
 from fastestimator.summary.system import Summary, System
 from fastestimator.trace.io.best_model_saver import BestModelSaver
 from fastestimator.trace.io.model_saver import ModelSaver
 from fastestimator.trace.io.restore_wizard import RestoreWizard
 from fastestimator.trace.io.traceability import Traceability
-from fastestimator.trace.trace import EvalEssential, Logger, PerDSTrace, TestEssential, Trace, TrainEssential, \
-    sort_traces
+from fastestimator.trace.trace import (
+    EvalEssential,
+    Logger,
+    PerDSTrace,
+    TestEssential,
+    Trace,
+    TrainEssential,
+    sort_traces,
+)
 from fastestimator.types import FilteredData
 from fastestimator.util.base_util import NonContext, filter_nones, to_list, to_set, warn
 from fastestimator.util.data import Data
@@ -141,6 +152,9 @@ class Estimator:
             A summary object containing the training history for this session iff a `summary` name was provided.
         """
         _verify_dependency_versions()
+        # Enable cudnn benchmark for improved GPU performance with fixed-size inputs
+        if torch.cuda.is_available():
+            torch.backends.cudnn.benchmark = True
         draw()
         self.system.reset(summary, self.fe_summary())
         self._prepare_traces(run_modes={"train", "eval"})

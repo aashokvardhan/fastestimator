@@ -37,6 +37,7 @@ from typing import (
 
 import gdown
 import torch
+import torch.distributed as dist
 from typing_extensions import Self
 
 import fastestimator as fe
@@ -65,10 +66,14 @@ from fastestimator.util.base_util import NonContext, filter_nones, to_list, warn
 from fastestimator.util.traceability_util import trace_model, traceable
 from fastestimator.util.util import (
     Suppressor,
+    detach_and_move_to_cpu,
     detach_tensors,
     get_batch_size,
     get_device,
+    get_local_rank,
     get_num_gpus,
+    get_world_size,
+    is_distributed,
     move_tensors_to_device,
 )
 
@@ -538,8 +543,10 @@ class TorchNetwork(BaseNetwork):
                          eager=eager)
         if self.device.type != "cpu":
             for model in self.ctx_models:
-                # move model variables to gpu
-                model.to(self.device)
+                # Only move model to GPU if it's not already there
+                model_device = next(model.parameters(), torch.tensor(0)).device
+                if model_device != self.device:
+                    model.to(self.device)
                 if model.current_optimizer and mode == "train":
                     # move optimizer variables to gpu
                     self._move_optimizer_between_device(model.current_optimizer.state, self.device)
@@ -565,7 +572,7 @@ class TorchNetwork(BaseNetwork):
                 self._move_optimizer_between_device(data[key], device)
             else:
                 try:
-                    data[key] = data[key].to(device)
+                    data[key] = data[key].to(device, non_blocking=True)
                 except (RuntimeError, AssertionError, AttributeError):
                     pass
 
@@ -629,10 +636,10 @@ class TorchNetwork(BaseNetwork):
             with torch.autocast(device_type=self.device.type) if self.mixed_precision else NonContext():
                 self._forward_batch(batch_in, self.ctx_state, self.ctx_ops)
 
-        # copy data to cpu
+        # copy data to cpu - use combined detach+move for efficiency (single traversal)
         if self.device.type != "cpu":
             prediction = {
-                key: move_tensors_to_device(detach_tensors(batch_in[key]), "cpu")
+                key: detach_and_move_to_cpu(batch_in[key])
                 for key in self.ctx_outputs if key in batch_in
             }
         else:
@@ -758,7 +765,22 @@ def _fe_compile(model: Model,
         raise ValueError("unrecognized model format: {}".format(type(model)))
     # torch multi-gpu handling
     if framework == "torch" and get_num_gpus() > 1:
-        model = torch.nn.DataParallel(model)
+        if is_distributed():
+            # Use DistributedDataParallel for better multi-GPU efficiency
+            # DDP uses ring-allreduce for gradient synchronization which is more efficient
+            device_id = get_local_rank() % torch.cuda.device_count()
+            model = model.to(device_id)
+            model = torch.nn.parallel.DistributedDataParallel(
+                model,
+                device_ids=[device_id],
+                output_device=device_id,
+                find_unused_parameters=False,  # Set to True if model has unused parameters
+                broadcast_buffers=True,  # Synchronize buffers at the beginning of forward
+                gradient_as_bucket_view=True  # More memory efficient gradient handling
+            )
+        else:
+            # Fallback to DataParallel if DDP not initialized (simpler but less efficient)
+            model = torch.nn.DataParallel(model)
     # mark models with its mixed_precision flag
     model.mixed_precision = mixed_precision
     if isinstance(optimizer_fn, EpochScheduler):
@@ -850,7 +872,7 @@ def _optimizer_fn_to_optimizer(optimizer_fn: Union[Callable, None], model: Model
             raise ValueError(repr(e))
         assert isinstance(optimizer, torch.optim.Optimizer), "optimizer_fn should generate pytorch optimizer"
         if mixed_precision and torch.cuda.is_available():
-            setattr(optimizer, "scaler", torch.cuda.amp.GradScaler())
+            setattr(optimizer, "scaler", torch.amp.GradScaler("cuda"))
         else:
             setattr(optimizer, "scaler", None)
 

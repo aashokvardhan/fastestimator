@@ -25,7 +25,17 @@ import time
 from contextlib import ContextDecorator
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, MutableMapping, Optional, Tuple, Type, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    MutableMapping,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 import torch
@@ -255,6 +265,7 @@ class Timer(ContextDecorator):
     func()  # T2 took 0.14819 seconds
     ```
     """
+
     def __init__(self, name='Task') -> None:
         self.name = name
         self.start = None
@@ -332,26 +343,31 @@ def pad_data(data: np.ndarray, target_shape: Tuple[int, ...], pad_value: Union[f
     return np.pad(data, padded_shape, 'constant', constant_values=pad_value)
 
 
-def move_tensors_to_device(data: T, device: Union[str, torch.device]) -> T:
+def move_tensors_to_device(data: T, device: Union[str, torch.device], non_blocking: bool = True) -> T:
     """Move torch tensor (collections) between gpu and cpu recursively.
+
+    Uses non_blocking transfers by default for better overlap of data transfers with computation
+    when moving to/from CUDA devices with pinned memory.
 
     Args:
         data: The input data to be moved.
         device: The target device.
+        non_blocking: Whether to use non-blocking transfers. Defaults to True for better performance
+            with CUDA devices.
 
     Returns:
         Output data.
     """
     if isinstance(data, dict):
-        return {key: move_tensors_to_device(value, device) for (key, value) in data.items()}
+        return {key: move_tensors_to_device(value, device, non_blocking) for (key, value) in data.items()}
     elif isinstance(data, list):
-        return [move_tensors_to_device(val, device) for val in data]
+        return [move_tensors_to_device(val, device, non_blocking) for val in data]
     elif isinstance(data, tuple):
-        return tuple([move_tensors_to_device(val, device) for val in data])
+        return tuple([move_tensors_to_device(val, device, non_blocking) for val in data])
     elif isinstance(data, set):
-        return set([move_tensors_to_device(val, device) for val in data])
+        return set([move_tensors_to_device(val, device, non_blocking) for val in data])
     elif isinstance(data, torch.Tensor):
-        return data.to(device)
+        return data.to(device, non_blocking=non_blocking)
     else:
         return data
 
@@ -378,14 +394,46 @@ def detach_tensors(data: T) -> T:
     return data
 
 
+def detach_and_move_to_cpu(data: T) -> T:
+    """Detach tensor (collections) from current graph and move to CPU in a single traversal.
+
+    This is more efficient than calling detach_tensors() followed by move_tensors_to_device()
+    as it only traverses the data structure once.
+
+    Args:
+        data: The data to be detached and moved.
+
+    Returns:
+        Output data on CPU, detached from the computation graph.
+    """
+    if isinstance(data, dict):
+        return {key: detach_and_move_to_cpu(value) for (key, value) in data.items()}
+    elif isinstance(data, list):
+        return [detach_and_move_to_cpu(val) for val in data]
+    elif isinstance(data, tuple):
+        return tuple([detach_and_move_to_cpu(val) for val in data])
+    elif isinstance(data, set):
+        return set([detach_and_move_to_cpu(val) for val in data])
+    elif isinstance(data, torch.Tensor):
+        return data.detach().to("cpu", non_blocking=True)
+    return data
+
+
 @lru_cache()
 def get_device() -> torch.device:
     """Get the torch device for the current hardware.
 
+    In distributed training (DDP), respects the LOCAL_RANK environment variable
+    to assign each process to the correct GPU. In single-GPU or CPU mode, selects
+    the best available device.
+
     Returns:
         The torch device most appropriate for the current hardware.
     """
-    if torch.backends.mps.is_available():
+    if is_distributed():
+        local_rank = int(os.environ.get('LOCAL_RANK', 0))
+        device = torch.device(f"cuda:{local_rank}")
+    elif torch.backends.mps.is_available():
         device = torch.device("mps")
     elif torch.cuda.is_available():
         device = torch.device("cuda:0")
@@ -455,6 +503,37 @@ def get_num_devices() -> int:
         The number of available GPUs, or 1 if none are found.
     """
     return max(torch.cuda.device_count(), 1)
+
+
+def is_distributed() -> bool:
+    """Check if distributed training is initialized.
+
+    Returns:
+        True if distributed training is active, False otherwise.
+    """
+    return torch.distributed.is_available() and torch.distributed.is_initialized()
+
+
+def get_local_rank() -> int:
+    """Get the local rank of the current process in distributed training.
+
+    Returns:
+        The local rank, or 0 if not in distributed mode.
+    """
+    if is_distributed():
+        return torch.distributed.get_rank()
+    return 0
+
+
+def get_world_size() -> int:
+    """Get the total number of processes in distributed training.
+
+    Returns:
+        The world size, or 1 if not in distributed mode.
+    """
+    if is_distributed():
+        return torch.distributed.get_world_size()
+    return 1
 
 
 @lru_cache()
