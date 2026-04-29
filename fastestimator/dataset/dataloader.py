@@ -29,6 +29,7 @@ from fastestimator.dataset.extend_dataset import ExtendDataset
 from fastestimator.dataset.interleave_dataset import InterleaveDataset
 from fastestimator.dataset.op_dataset import OpDataset
 from fastestimator.types import FilteredData, MapDataset
+from fastestimator.util.distributed import get_rank, get_world_size, is_distributed
 from fastestimator.util.util import Suppressor
 
 
@@ -106,7 +107,8 @@ class FEDataLoader(DataLoader):
             elif isinstance(dataset, ExtendDataset):
                 to_yield = dataset.spoof_length
             else:
-                to_yield = len(dataset)
+                # Use the per-rank sampler length so that DDP shards reduce the per-rank epoch length
+                to_yield = len(sampler)
             if drop_last:
                 to_yield -= to_yield % (batch_size or 1)
         self.fe_samples_to_yield = to_yield
@@ -378,6 +380,12 @@ class _MPPostBatchIter(_BaseFELoaderIter, _MultiProcessingDataLoaderIter):
 class InfiniteSampler(Sampler):
     """A class which never stops sampling.
 
+    Under ``torch.distributed`` (DDP) the sampler shards the dataset across
+    ranks: each rank only emits ``ceil(len(ds) / world_size)`` indices per
+    pass, padding via wrap-around when the dataset doesn't divide evenly.
+    Shuffling is synchronized across ranks via a shared ``seed + epoch`` so
+    that each rank sees a disjoint slice.
+
     Args:
         data_source: The dataset to be sampled.
         shuffle: Whether to shuffle when sampling.
@@ -385,22 +393,58 @@ class InfiniteSampler(Sampler):
             traversed.
         convert_fn: A function to be invoked (using the current index) every sample in order to convert an integer index
             into some arbitrary alternative index representation.
+        seed: Base seed for synchronized shuffling across DDP ranks.
     """
     def __init__(self,
                  data_source: Sized,
                  shuffle: bool = True,
                  reset_fn: Optional[Callable[[bool], None]] = None,
-                 convert_fn: Optional[Callable[[int], Any]] = None):
+                 convert_fn: Optional[Callable[[int], Any]] = None,
+                 seed: int = 0):
         super().__init__(data_source=None)  # Arg is unused and triggers a warning in torch 2.1
         self.interleave_ds = isinstance(data_source, InterleaveDataset)
-        self.ds_len = len(data_source)
-        if self.ds_len < 1:
+        self.full_len = len(data_source)
+        if self.full_len < 1:
             raise ValueError("dataset length must be at least 1")
-        self.indices = [i for i in range(self.ds_len)]
         self.shuffle = shuffle
         self.reset_fn = reset_fn
         self.convert_fn = convert_fn
+        self.seed = seed
+        # DDP sharding: each rank gets ceil(N / W) indices per pass, with wrap-around padding
+        self.world_size = get_world_size() if is_distributed() else 1
+        self.rank = get_rank() if is_distributed() else 0
+        if self.world_size > 1 and not self.interleave_ds:
+            self.ds_len = (self.full_len + self.world_size - 1) // self.world_size
+        else:
+            self.ds_len = self.full_len
+        self.indices: List[int] = []
         self.idx = 0
+        # Tracks how many times __iter__ has been called; serves as an epoch counter for DDP shuffling
+        self._epoch = 0
+        self._build_indices()
+
+    def _build_indices(self) -> None:
+        """(Re)compute the per-rank index list, optionally shuffled."""
+        all_indices = list(range(self.full_len))
+        if self.shuffle and not self.interleave_ds:
+            if self.world_size > 1:
+                # Use a seeded RNG so all ranks shuffle identically before sharding
+                rng = random.Random(self.seed + self._epoch)
+                rng.shuffle(all_indices)
+            else:
+                random.shuffle(all_indices)
+        if self.world_size > 1 and not self.interleave_ds:
+            # Pad by wrap-around so every rank gets exactly self.ds_len samples
+            pad = self.ds_len * self.world_size - self.full_len
+            if pad > 0:
+                all_indices = all_indices + all_indices[:pad]
+            self.indices = all_indices[self.rank:len(all_indices):self.world_size]
+        else:
+            self.indices = all_indices
+
+    def set_epoch(self, epoch: int) -> None:
+        """Set the epoch index for synchronized DDP shuffling."""
+        self._epoch = epoch
 
     def __len__(self):
         return self.ds_len
@@ -409,9 +453,8 @@ class InfiniteSampler(Sampler):
         self.idx = 0
         if self.reset_fn:
             self.reset_fn(self.shuffle)
-        if self.shuffle and not self.interleave_ds:
-            # interleave_ds requires unshuffled indices to work correctly with its repeating pattern
-            random.shuffle(self.indices)
+        self._epoch += 1
+        self._build_indices()
         return self
 
     def __next__(self):
@@ -419,9 +462,8 @@ class InfiniteSampler(Sampler):
             self.idx = 0
             if self.reset_fn:
                 self.reset_fn(self.shuffle)
-            if self.shuffle and not self.interleave_ds:
-                # interleave_ds requires unshuffled indices to work correctly with its repeating pattern
-                random.shuffle(self.indices)
+            self._epoch += 1
+            self._build_indices()
         elem = self.indices[self.idx]
         self.idx += 1
         if self.convert_fn:

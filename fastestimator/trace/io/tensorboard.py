@@ -244,6 +244,7 @@ class TensorBoard(Trace):
         embedding_images: Keys corresponding to raw images to be associated with the `write_embeddings`.
     """
     writer: _BaseWriter
+    fe_rank_zero_only = True
 
     # TODO - support for per-instance tracking
 

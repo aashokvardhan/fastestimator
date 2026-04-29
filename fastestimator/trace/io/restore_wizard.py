@@ -31,6 +31,7 @@ class RestoreWizard(Trace):
         directory: Directory to save and load the training status.
         frequency: Saving frequency in epoch(s).
     """
+    fe_rank_zero_only = True
 
     def __init__(self, directory: str, frequency: int = 1) -> None:
         super().__init__(inputs="*", mode="train")  # inputs to cause this trace to sort to the end of the list

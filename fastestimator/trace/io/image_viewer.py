@@ -35,6 +35,7 @@ class ImageViewer(Trace):
             like "!infer" or "!train".
         interactive: Whether the image should be interactive. This is False by default to reduce jupyter file size.
     """
+    fe_rank_zero_only = True
 
     def __init__(
             self,

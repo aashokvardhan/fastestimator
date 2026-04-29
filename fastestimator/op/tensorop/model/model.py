@@ -74,7 +74,8 @@ class ModelOp(TensorOp):
                 if get_num_devices() > 1:
                     # Try to automatically adjust parameters for multi-gpu so that user doesn't need to change code
                     layers2 = list(model.named_modules())  # It's a generator, so don't corrupt the other copy
-                    if isinstance(layers2[0][1], torch.nn.parallel.DataParallel):
+                    if isinstance(layers2[0][1],
+                                  (torch.nn.parallel.DataParallel, torch.nn.parallel.DistributedDataParallel)):
                         parallel_prefix = "module."
                         if isinstance(intermediate_layer, str) and not intermediate_layer.startswith(parallel_prefix):
                             intermediate_layer = parallel_prefix + intermediate_layer

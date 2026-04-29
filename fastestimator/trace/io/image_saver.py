@@ -34,6 +34,7 @@ class ImageSaver(Trace):
             regardless of mode, pass None. To execute in all modes except for a particular one, you can pass an argument
             like "!infer" or "!train".
     """
+    fe_rank_zero_only = True
 
     def __init__(
         self,

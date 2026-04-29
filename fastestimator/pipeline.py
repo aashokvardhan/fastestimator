@@ -732,6 +732,7 @@ class Pipeline:
             except ValueError as err:
                 self.ctx_lock.release()
                 raise err
+            self._set_sampler_epoch(data)
             self.ctx_loader = data
         elif isinstance(self.ctx_dataset, Dataset):
             # Results will be immediately converted to tensors, so don't need deep_remainder
@@ -763,10 +764,17 @@ class Pipeline:
             except ValueError as err:
                 self.ctx_lock.release()
                 raise err
+            self._set_sampler_epoch(data)
             self.ctx_loader = data
         else:
             self.ctx_loader = self.ctx_dataset
         return self.ctx_loader
+
+    def _set_sampler_epoch(self, loader: DataLoader) -> None:
+        """Synchronize the sampler's epoch index across DDP ranks for shuffling."""
+        sampler = getattr(loader, 'sampler', None)
+        if sampler is not None and hasattr(sampler, 'set_epoch'):
+            sampler.set_epoch(self.ctx_epoch)
 
     def __exit__(self, *exc: Tuple[Optional[Type], Optional[Exception], Optional[Any]]) -> None:
         if self.ctx_loader is not None and hasattr(self.ctx_loader, 'shutdown'):

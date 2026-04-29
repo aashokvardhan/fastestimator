@@ -41,6 +41,7 @@ class BestModelSaver(Trace):
         AssertionError: If a `metric` is not provided and it cannot be inferred from the `model`.
         ValueError: If `save_best_mode` is an unacceptable string.
     """
+    fe_rank_zero_only = True
 
     def __init__(self,
                  model: torch.nn.Module,

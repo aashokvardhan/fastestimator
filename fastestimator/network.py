@@ -39,6 +39,7 @@ from fastestimator.schedule.schedule import EpochScheduler, RepeatScheduler, Sch
 from fastestimator.slicer.slicer import Slicer, forward_slicers, reverse_slicers, sanity_assert_slicers
 from fastestimator.types import Array, Model
 from fastestimator.util.base_util import NonContext, filter_nones, to_list, warn
+from fastestimator.util.distributed import get_local_rank, is_distributed
 from fastestimator.util.traceability_util import trace_model, traceable
 from fastestimator.util.util import detach_tensors, get_device, get_num_gpus, move_tensors_to_device
 
@@ -739,8 +740,21 @@ def _fe_compile(model: Model,
     else:
         raise ValueError("unrecognized model format: {}".format(type(model)))
     # torch multi-gpu handling
-    if framework == "torch" and get_num_gpus() > 1:
-        model = torch.nn.DataParallel(model)
+    if framework == "torch":
+        if is_distributed():
+            # DDP: each process owns a single GPU at LOCAL_RANK; wrap with DistributedDataParallel
+            local_rank = get_local_rank()
+            if torch.cuda.is_available():
+                device = torch.device(f"cuda:{local_rank}")
+                model = model.to(device)
+                model = torch.nn.parallel.DistributedDataParallel(model,
+                                                                  device_ids=[local_rank],
+                                                                  output_device=local_rank,
+                                                                  find_unused_parameters=False)
+            else:
+                model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=False)
+        elif get_num_gpus() > 1:
+            model = torch.nn.DataParallel(model)
     # mark models with its mixed_precision flag
     model.mixed_precision = mixed_precision
     if isinstance(optimizer_fn, EpochScheduler):

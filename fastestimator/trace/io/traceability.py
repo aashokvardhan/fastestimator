@@ -99,6 +99,8 @@ class Traceability(Trace):
     Raises:
         OSError: If graphviz is not installed.
     """
+    fe_rank_zero_only = True
+
     def __init__(self, save_path: str, extra_objects: Any = None):
         # Verify that graphviz is available on this machine
         try:
@@ -501,7 +503,9 @@ class Traceability(Trace):
                                         str(
                                             pms(
                                                 model.module
-                                                if isinstance(model, torch.nn.parallel.DataParallel) else model,
+                                                if isinstance(model,
+                                                              (torch.nn.parallel.DataParallel,
+                                                               torch.nn.parallel.DistributedDataParallel)) else model,
                                                 input_data=inputs,
                                                 col_names=("output_size", "num_params", "trainable"),
                                                 col_width=20,
@@ -514,7 +518,9 @@ class Traceability(Trace):
                             # noinspection PyBroadException
                             try:
                                 graph = draw_graph(
-                                    model.module if isinstance(model, torch.nn.parallel.DataParallel) else model,
+                                    model.module if isinstance(model,
+                                                               (torch.nn.parallel.DataParallel,
+                                                                torch.nn.parallel.DistributedDataParallel)) else model,
                                     input_data=inputs,
                                     device=inputs.device,
                                     graph_dir='TB',

@@ -25,8 +25,29 @@ from fastestimator.summary.summary import ValWithError
 from fastestimator.summary.system import System
 from fastestimator.util.base_util import check_ds_id, check_io_names, parse_modes, to_list, to_set
 from fastestimator.util.data import Data, DSData
+from fastestimator.util.distributed import all_reduce_mean, is_distributed
 from fastestimator.util.traceability_util import traceable
 from fastestimator.util.util import to_number
+
+
+def _ddp_reduce_mean(value):
+    """Average a numpy scalar/array across DDP ranks. No-op if not distributed.
+
+    Used by EvalEssential / TestEssential so the metric printed by rank 0 reflects the global mean rather
+    than only this rank's shard.
+    """
+    if not is_distributed():
+        return value
+    import torch
+    arr = np.asarray(value)
+    tensor = torch.from_numpy(arr.astype(np.float64))
+    if torch.cuda.is_available():
+        tensor = tensor.cuda()
+    reduced = all_reduce_mean(tensor)
+    out = reduced.cpu().numpy()
+    if arr.ndim == 0:
+        return out.item()
+    return out.astype(arr.dtype)
 
 
 @traceable()
@@ -78,6 +99,9 @@ class Trace:
     # You can put keys in here to have them automatically added to EvalEssential without the user having to manually add
     # them to the Estimator monitor_names. See BestModelSaver for an example.
     fe_monitor_names: Set[str]
+    # Set to True for traces that perform IO (saving files, printing logs, writing TB events, etc.) so that under
+    # torch.distributed (DDP) only rank 0 actually executes them.
+    fe_rank_zero_only: bool = False
 
     def __init__(self,
                  inputs: Union[None, str, Iterable[str]] = None,
@@ -247,8 +271,12 @@ class EvalEssential(Trace):
             for ds_id, vals in ds_vals.items():
                 if ds_id != '':
                     d = DSData(ds_id, data)
-                    d.write_with_log(key, np.mean(np.array(vals), axis=0))
-            data.write_with_log(key, np.mean(np.array([e for x in ds_vals.values() for e in x]), axis=0))
+                    mean_val = np.mean(np.array(vals), axis=0)
+                    mean_val = _ddp_reduce_mean(mean_val)
+                    d.write_with_log(key, mean_val)
+            mean_val = np.mean(np.array([e for x in ds_vals.values() for e in x]), axis=0)
+            mean_val = _ddp_reduce_mean(mean_val)
+            data.write_with_log(key, mean_val)
 
 
 @traceable()
@@ -288,8 +316,12 @@ class TestEssential(Trace):
             for ds_id, vals in ds_vals.items():
                 if ds_id != '':
                     d = DSData(ds_id, data)
-                    d.write_with_log(key, np.mean(np.array(vals), axis=0))
-            data.write_with_log(key, np.mean(np.array([e for x in ds_vals.values() for e in x]), axis=0))
+                    mean_val = np.mean(np.array(vals), axis=0)
+                    mean_val = _ddp_reduce_mean(mean_val)
+                    d.write_with_log(key, mean_val)
+            mean_val = np.mean(np.array([e for x in ds_vals.values() for e in x]), axis=0)
+            mean_val = _ddp_reduce_mean(mean_val)
+            data.write_with_log(key, mean_val)
         if self.test_start is not None:
             elapsed = time.perf_counter() - self.test_start
             total_steps = sum(self.test_steps.values())
@@ -304,6 +336,8 @@ class Logger(Trace):
 
     Please don't add this trace into an estimator manually. FastEstimator will add it automatically.
     """
+    fe_rank_zero_only = True
+
     def __init__(self) -> None:
         super().__init__(inputs="*")
         self.eval_steps = defaultdict(lambda: 0)

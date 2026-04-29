@@ -43,7 +43,7 @@ def load_model(model: torch.nn.Module, weights_path: str, load_optimizer: bool =
         raise ValueError("Weights path doesn't exist: ", weights_path)
 
     if isinstance(model, torch.nn.Module):
-        if isinstance(model, torch.nn.DataParallel):
+        if isinstance(model, (torch.nn.DataParallel, torch.nn.parallel.DistributedDataParallel)):
             model.module.load_state_dict(preprocess_torch_weights(weights_path))
         else:
             model.load_state_dict(preprocess_torch_weights(weights_path))

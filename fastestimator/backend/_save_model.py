@@ -18,9 +18,7 @@ from typing import Optional
 import torch
 
 
-def save_model(model: torch.nn.Module,
-               save_dir: str,
-               model_name: Optional[str] = None,
+def save_model(model: torch.nn.Module, save_dir: str, model_name: Optional[str] = None,
                save_optimizer: bool = False) -> str:
     """Save `model` weights to a specific directory.
 
@@ -49,7 +47,7 @@ def save_model(model: torch.nn.Module,
     os.makedirs(save_dir, exist_ok=True)
     if isinstance(model, torch.nn.Module):
         model_path = os.path.join(save_dir, "{}.pt".format(model_name))
-        if isinstance(model, torch.nn.DataParallel):
+        if isinstance(model, (torch.nn.DataParallel, torch.nn.parallel.DistributedDataParallel)):
             torch.save(model.module.state_dict(), model_path)
         else:
             torch.save(model.state_dict(), model_path)

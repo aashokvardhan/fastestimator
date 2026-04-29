@@ -380,35 +380,45 @@ def detach_tensors(data: T) -> T:
     return data
 
 
-@lru_cache()
 def get_device() -> torch.device:
     """Get the torch device for the current hardware.
 
+    When running under ``torch.distributed`` (DDP), each process sees a single
+    GPU at index ``LOCAL_RANK``. Otherwise the first available device is used.
+
     Returns:
-        The torch device most appropriate for the current hardware.
+        The torch device most appropriate for the current hardware/process.
     """
     if torch.backends.mps.is_available():
-        device = torch.device("mps")
-    elif torch.cuda.is_available():
-        device = torch.device("cuda:0")
-    else:
-        device = torch.device("cpu")
-    return device
+        return torch.device("mps")
+    if torch.cuda.is_available():
+        local_rank_str = os.environ.get("LOCAL_RANK")
+        if local_rank_str is not None:
+            try:
+                return torch.device(f"cuda:{int(local_rank_str)}")
+            except ValueError:
+                pass
+        return torch.device("cuda:0")
+    return torch.device("cpu")
 
 
-@lru_cache()
 def get_num_gpus() -> int:
-    """Get the number of GPUs available.
+    """Get the number of GPUs visible to the current process.
+
+    Under DDP each process owns a single GPU, so this returns 1 even though
+    additional GPUs may exist on the same node.
 
     Returns:
-        The number of GPUs available.
+        The number of GPUs available to this process.
     """
+    if "LOCAL_RANK" in os.environ and torch.cuda.is_available():
+        # DDP: each process owns one GPU
+        return 1
     if torch.backends.mps.is_available():
         return 1
-    elif torch.cuda.is_available():
+    if torch.cuda.is_available():
         return torch.cuda.device_count()
-    else:
-        return 0
+    return 0
 
 
 @lru_cache()
@@ -449,13 +459,18 @@ def get_gpu_info() -> List[str]:
     return []
 
 
-@lru_cache()
 def get_num_devices() -> int:
     """Determine the number of available GPUs.
 
+    Under DDP each process owns one GPU, so this returns 1. Returns at least 1
+    even on CPU-only machines so that callers using this to scale a batch
+    size keep working.
+
     Returns:
-        The number of available GPUs, or 1 if none are found.
+        The number of available GPUs, or 1 if none are found / running DDP.
     """
+    if "LOCAL_RANK" in os.environ:
+        return 1
     return max(torch.cuda.device_count(), 1)
 
 

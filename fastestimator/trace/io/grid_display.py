@@ -45,6 +45,7 @@ class GridDisplay(Trace):
         ds_id: What dataset id(s) to execute this Trace in. To execute regardless of ds_id, pass None. To execute in all
             ds_ids except for a particular one, you can pass an argument like "!ds1".
     """
+    fe_rank_zero_only = True
 
     def __init__(self,
                  columns: Sequence[BatchDisplay],

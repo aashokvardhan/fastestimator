@@ -38,6 +38,7 @@ class ModelSaver(Trace):
     Raises:
         ValueError: If `max_to_keep` is negative.
     """
+    fe_rank_zero_only = True
 
     def __init__(self,
                  model: torch.nn.Module,

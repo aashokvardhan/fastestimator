@@ -40,6 +40,7 @@ from fastestimator.trace.trace import EvalEssential, Logger, PerDSTrace, TestEss
 from fastestimator.types import FilteredData
 from fastestimator.util.base_util import NonContext, filter_nones, to_list, to_set, warn
 from fastestimator.util.data import Data
+from fastestimator.util.distributed import cleanup_distributed, init_distributed, is_distributed, is_main_process
 from fastestimator.util.traceability_util import traceable
 from fastestimator.util.util import Suppressor, draw
 
@@ -145,7 +146,11 @@ class Estimator:
             A summary object containing the training history for this session iff a `summary` name was provided.
         """
         _verify_dependency_versions()
-        draw()
+        # If launched via torchrun, set up the distributed process group before anything that needs the
+        # device or rank (model placement, sampler, traces, etc.).
+        init_distributed()
+        if is_main_process():
+            draw()
         self.system.reset(summary, self.fe_summary())
         self._prepare_traces(run_modes={"train", "eval"})
         if warmup:
@@ -177,7 +182,7 @@ class Estimator:
             for trace in get_current_items(self.traces_in_use, run_modes=run_modes):
                 if isinstance(trace, (ModelSaver, BestModelSaver)):
                     no_save_warning = False
-            if no_save_warning:
+            if no_save_warning and is_main_process():
                 warn("No ModelSaver Trace detected. Models will not be saved.")
         if "eval" in run_modes and "eval" in self.pipeline.get_modes():
             self.traces_in_use.insert(1, EvalEssential(monitor_names=self.monitor_names.union(extra_monitor_keys)))
@@ -209,6 +214,7 @@ class Estimator:
             considering the default behavior above).
         """
         _verify_dependency_versions()
+        init_distributed()
         self.system.reset_for_test(summary)
         self._prepare_traces(run_modes={"test"})
         self._warmup_test(eager=eager)
@@ -502,7 +508,7 @@ class Estimator:
         """
         data = Data()
         restore = None
-        for trace in traces:
+        for trace in self._rank_filter(traces):
             # Delay RestoreWizard until the end so that it can overwrite everyone's on_begin methods
             if isinstance(trace, RestoreWizard):
                 restore = trace
@@ -523,7 +529,7 @@ class Estimator:
             traces: List of traces.
         """
         data = Data()
-        for trace in traces:
+        for trace in self._rank_filter(traces):
             trace.on_epoch_begin(data)
         self._check_early_exit()
 
@@ -534,7 +540,7 @@ class Estimator:
             traces: List of traces.
         """
         data = Data()
-        for trace in traces:
+        for trace in self._rank_filter(traces):
             trace.on_ds_begin(data)
         self._check_early_exit()
 
@@ -546,7 +552,7 @@ class Estimator:
             traces: List of traces.
         """
         data = Data(batch)
-        for trace in traces:
+        for trace in self._rank_filter(traces):
             trace.on_batch_begin(data)
         self._check_early_exit()
 
@@ -558,7 +564,7 @@ class Estimator:
             traces: List of traces.
         """
         data = Data(batch)
-        for trace in traces:
+        for trace in self._rank_filter(traces):
             trace.on_batch_end(data)
         self._check_early_exit()
 
@@ -569,7 +575,7 @@ class Estimator:
             traces: List of traces.
             data: Data into which to record results.
         """
-        for trace in traces:
+        for trace in self._rank_filter(traces):
             trace.on_ds_end(data)
         self._check_early_exit()
 
@@ -580,7 +586,7 @@ class Estimator:
             traces: List of traces.
             data: Data into which to record results.
         """
-        for trace in traces:
+        for trace in self._rank_filter(traces):
             trace.on_epoch_end(data)
         self._check_early_exit()
 
@@ -593,7 +599,10 @@ class Estimator:
         """
         data = Data()
         traceability = None
+        rank0 = is_main_process()
         for trace in traces:
+            if getattr(trace, 'fe_rank_zero_only', False) and not rank0:
+                continue
             if isinstance(trace, Traceability):
                 # Delay traceability until the end so that it can capture all data including the total training time
                 traceability = trace
@@ -601,6 +610,13 @@ class Estimator:
             trace.on_end(data)
         if traceability:
             traceability.on_end(data)
+
+    @staticmethod
+    def _rank_filter(traces: Iterable[Trace]) -> Iterable[Trace]:
+        """Drop traces marked ``fe_rank_zero_only=True`` when running on non-rank-0 of a distributed job."""
+        if is_main_process():
+            return traces
+        return [t for t in traces if not getattr(t, 'fe_rank_zero_only', False)]
 
     def _check_early_exit(self) -> None:
         """Determine whether training should be prematurely aborted.
